@@ -240,7 +240,7 @@ INSERT INTO cafe_shifts (id, division, label, short_name, start_time, end_time, 
     ('bakery_siang', '🥐 Bakery & Pastry (Produksi)', 'Bakery — Shift Siang / Dough & Restock (12:00 – 20:00)', 'Bakery Siang', '12:00', '20:00', 5, 3, '🥖'),
     ('kitchen_pagi', '🍳 Kitchen & Cook (Hot Food)', 'Kitchen — Shift Pagi (08:00 – 16:00)', 'Kitchen Pagi', '08:00', '16:00', 5, 4, '🍳'),
     ('kitchen_sore', '🍳 Kitchen & Cook (Hot Food)', 'Kitchen — Shift Sore / Closing (14:00 – 22:00)', 'Kitchen Sore', '14:00', '22:00', 5, 5, '🔥'),
-    ('middle_shift', '⚡ Umum & Fleksibel', 'Middle Shift / Peak Hours (11:00 – 19:00)', 'Middle Shift', '11:00', '19:00', 5, 6, '⚡'),
+    ('middle_shift', '⚡ Umum & Fleksibel', 'Middle Shift / Peak Hours (11:00 – 19:00)', 'Middle Shift', '11:00', '19:00', 5, 6, '⚡') ON CONFLICT (id) DO NOTHING;
 -- 9. Tabel Konfigurasi Integrasi Cloud (KasirPro API, Webhooks, dll agar sinkron ke seluruh device)
 CREATE TABLE IF NOT EXISTS cafe_integrations (
     key_name VARCHAR(100) PRIMARY KEY,
