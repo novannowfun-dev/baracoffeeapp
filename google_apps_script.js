@@ -106,7 +106,73 @@ function handleRequest(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 3. DEFAULT: SYNC PENJUALAN / OMSET HARIAN (ANTI-DUPLIKASI / UPSERT)
+    // 3. SYNC PENGELUARAN KAS KECIL / PETTY CASH (TAB SHEET BARU: Buku_Kas_Pengeluaran)
+    if (syncType === "petty_cash" || syncType === "expense") {
+      var headersExpense = [
+        "Tanggal", "Shift", "Kasir", 
+        "Nama Barang / Keperluan", "Kategori", "Nominal", 
+        "Catatan Shift", "ID Item", "Waktu Sync"
+      ];
+      var sheetExpense = getOrCreateSheet(doc, "Buku_Kas_Pengeluaran", headersExpense);
+
+      var expDate = String(data.entry_date || data.date || Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd")).trim();
+      var expShift = String(data.shift || "General").trim();
+      var expCashier = String(data.cashier_name || "-").trim();
+      var expItem = String(data.item_name || "Pengeluaran Kasir").trim();
+      var expCategory = String(data.category || "Lain-lain").trim();
+      var expAmount = Number(data.amount) || 0;
+      var expNotes = String(data.notes || "").trim();
+      var expId = String(data.id || "").trim();
+      var expTimestamp = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
+
+      var rowExpValues = [
+        expDate, expShift, expCashier,
+        expItem, expCategory, expAmount,
+        expNotes, expId, expTimestamp
+      ];
+
+      // Anti-duplikasi buku kas kecil berdasarkan ID Item atau (Tanggal + Item + Nominal)
+      var lastRowExp = sheetExpense.getLastRow();
+      var updatedExpIndex = -1;
+
+      if (lastRowExp > 1) {
+        var expData = sheetExpense.getRange(2, 1, lastRowExp - 1, headersExpense.length).getValues();
+        for (var i = 0; i < expData.length; i++) {
+          var rDate = String(expData[i][0] || "").trim();
+          var rItem = String(expData[i][3] || "").trim();
+          var rAmt = Number(expData[i][5]) || 0;
+          var rId = String(expData[i][7] || "").trim();
+
+          var matchById = (expId !== "" && rId !== "" && expId === rId);
+          var matchByContent = (rDate === expDate && rItem.toLowerCase() === expItem.toLowerCase() && rAmt === expAmount);
+
+          if (matchById || matchByContent) {
+            updatedExpIndex = i + 2;
+            break;
+          }
+        }
+      }
+
+      if (updatedExpIndex > 0) {
+        sheetExpense.getRange(updatedExpIndex, 1, 1, rowExpValues.length).setValues([rowExpValues]);
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          action: "updated",
+          message: "Nota pengeluaran kas kecil berhasil diperbarui di tab Buku_Kas_Pengeluaran!",
+          row: updatedExpIndex
+        })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        sheetExpense.appendRow(rowExpValues);
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          action: "inserted",
+          message: "Nota pengeluaran kas kecil berhasil dicatat di tab Buku_Kas_Pengeluaran!",
+          row: sheetExpense.getLastRow()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // 4. DEFAULT: SYNC PENJUALAN / OMSET HARIAN (ANTI-DUPLIKASI / UPSERT)
     var outletTarget = (data.outlet && String(data.outlet).toLowerCase().indexOf("gerobak") !== -1) ? "Penjualan_Gerobak" : "Penjualan_Kedai";
     var headers = [
       "Tanggal", "Outlet", "Shift", "Kasir", 

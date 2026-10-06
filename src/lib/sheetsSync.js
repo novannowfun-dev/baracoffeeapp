@@ -125,3 +125,42 @@ export async function testGoogleSheetsWebhook(customUrl) {
     return { success: false, message: `Gagal mengirim sinyal: ${err.message}` };
   }
 }
+export async function syncExpenseToGoogleSheets(expenseData) {
+  const webhookUrl = getSheetsWebhookUrl();
+  if (!webhookUrl) {
+    return { synced: false, message: 'Google Sheets Webhook URL belum diisi di Pengaturan.' };
+  }
+
+  const validation = validateWebhookUrl(webhookUrl);
+  if (!validation.valid) {
+    return { synced: false, message: validation.error };
+  }
+
+  const payload = {
+    sync_type: 'petty_cash',
+    id: expenseData.id || '',
+    sales_id: expenseData.sales_id || '',
+    entry_date: expenseData.date || expenseData.entry_date,
+    shift: expenseData.shift || 'General',
+    cashier_name: expenseData.cashier_name || '-',
+    item_name: expenseData.item_name || 'Pengeluaran Kasir',
+    category: expenseData.category || 'Lain-lain',
+    amount: Number(expenseData.amount) || 0,
+    notes: expenseData.shiftNotes || expenseData.notes || ''
+  };
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    return { synced: true, message: 'Pengeluaran berhasil dikirim ke Google Sheets!' };
+  } catch (err) {
+    return { synced: false, message: 'Gagal kirim ke Google Sheets: ' + err.message };
+  }
+}

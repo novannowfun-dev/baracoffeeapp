@@ -27,7 +27,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { formatIDR, formatDateID, getShiftBadge, getExpenseCategoryBadge } from '../lib/formatters';
-import { syncToGoogleSheets } from '../lib/sheetsSync';
+import { syncToGoogleSheets, syncExpenseToGoogleSheets } from '../lib/sheetsSync';
 
 const SHIFTS = ['Semua', 'Shift Pagi', 'Shift Malam'];
 
@@ -56,6 +56,23 @@ export default function HistoryView({
   const [expenseShift, setExpenseShift] = useState('Semua');
   const [expenseMonth, setExpenseMonth] = useState('Semua');
   const [isPrintLedgerOpen, setIsPrintLedgerOpen] = useState(false);
+  const [isSyncingExpenses, setIsSyncingExpenses] = useState(false);
+
+  const handleSyncAllExpensesToSheets = async () => {
+    if (filteredExpenses.length === 0) return;
+    setIsSyncingExpenses(true);
+    setSyncStatus(null);
+
+    let successCount = 0;
+    for (const exp of filteredExpenses) {
+      const res = await syncExpenseToGoogleSheets(exp);
+      if (res.synced) successCount++;
+    }
+
+    setIsSyncingExpenses(false);
+    setSyncStatus('Berhasil sinkronisasi ' + successCount + ' nota pengeluaran ke tab Buku_Kas_Pengeluaran!');
+    setTimeout(() => setSyncStatus(null), 5000);
+  };
 
   // State untuk Tab Rekap Seharian (Daily Combined)
   const [expandedDates, setExpandedDates] = useState({});
@@ -446,6 +463,17 @@ export default function HistoryView({
               >
                 <Download size={15} />
                 <span>Ekspor Buku Pengeluaran</span>
+              </button>
+
+              <button
+                onClick={handleSyncAllExpensesToSheets}
+                disabled={isSyncingExpenses || filteredExpenses.length === 0}
+                className="btn btn-primary"
+                style={{ fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#059669', borderColor: '#059669' }}
+                title="Sinkronkan nota pengeluaran kas kecil ke tab Buku_Kas_Pengeluaran Google Sheets"
+              >
+                <FileSpreadsheet size={15} />
+                <span>{isSyncingExpenses ? 'Menyinkronkan...' : 'Sync Buku Kas ke Sheets'}</span>
               </button>
 
               <button 
