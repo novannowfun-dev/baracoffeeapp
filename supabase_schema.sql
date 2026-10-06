@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SCHEMA DATABASE SUPABASE UNTUK DOUBLEDRIP BAKE & BREW
+-- SCHEMA DATABASE SUPABASE UNTUK BARA COFFEE (LENGKAP SEMUA FITUR)
 -- Skrip ini bersifat IDEMPOTENT (Aman dijalankan berulang-ulang tanpa error).
 -- Jalankan kode ini di SQL Editor pada dashboard Supabase Anda.
 -- ==============================================================================
@@ -30,6 +30,10 @@ CREATE TABLE IF NOT EXISTS daily_sales (
     actual_cash NUMERIC(12, 2) NOT NULL DEFAULT 0,       -- Uang fisik dihitung kasir
     cash_difference NUMERIC(12, 2) NOT NULL DEFAULT 0,   -- Selisih (+ lebih, - kurang)
     
+    -- Mode POS Kumulatif & Potongan Shift Pagi
+    pos_cumulative_gross NUMERIC(12, 2) DEFAULT NULL, -- Total kotor yang terbaca di mesin POS
+    shift1_deducted_gross NUMERIC(12, 2) DEFAULT NULL, -- Nilai kotor shift pagi yang dikurangkan
+
     -- Informasi Tambahan
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -76,6 +80,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     overtime_hours NUMERIC(4, 2) DEFAULT 0,      -- Jam lembur
     handover_notes TEXT,                         -- Catatan serah terima shift & closing bar
     notes TEXT,                                  -- Catatan absensi / alasan izin / sakit
+    photo_url TEXT,                              -- Foto selfie presensi (anti-cheat)
     is_demo BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -94,6 +99,7 @@ ALTER TABLE attendance ADD COLUMN IF NOT EXISTS late_reason TEXT;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS schedule_in VARCHAR(10);
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS schedule_out VARCHAR(10);
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
 -- 5. Tabel Penggajian Staf (Payroll & Payslip)
 CREATE TABLE IF NOT EXISTS payroll_records (
@@ -274,6 +280,8 @@ CREATE POLICY "Allow anon all owner_expenses" ON owner_expenses FOR ALL USING (t
 
 -- A. Outlet Support pada daily_sales & petty_cash
 ALTER TABLE daily_sales ADD COLUMN IF NOT EXISTS outlet VARCHAR(50) DEFAULT 'kedai';
+ALTER TABLE daily_sales ADD COLUMN IF NOT EXISTS pos_cumulative_gross NUMERIC(12, 2) DEFAULT NULL;
+ALTER TABLE daily_sales ADD COLUMN IF NOT EXISTS shift1_deducted_gross NUMERIC(12, 2) DEFAULT NULL;
 ALTER TABLE petty_cash_items ADD COLUMN IF NOT EXISTS outlet VARCHAR(50) DEFAULT 'kedai';
 CREATE INDEX IF NOT EXISTS idx_daily_sales_outlet ON daily_sales(outlet);
 
@@ -348,7 +356,7 @@ ALTER TABLE staff_kasbon ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow anon all staff_kasbon" ON staff_kasbon;
 CREATE POLICY "Allow anon all staff_kasbon" ON staff_kasbon FOR ALL USING (true) WITH CHECK (true);
 
--- E. Tabel Aset & Inventaris Gudang / Outlet
+-- E. Tabel Aset & Inventaris Gudang / Outlet (Opsional / Legacy)
 CREATE TABLE IF NOT EXISTS warehouse_assets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     asset_code VARCHAR(50),
