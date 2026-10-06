@@ -25,6 +25,7 @@ import { ROLES, getStaffList } from '../lib/auth';
 import { getSupabaseClient } from '../lib/supabase';
 import { getDailySalesRecords } from '../lib/storage';
 import { getTargetConfig, calculateMonthlyTargetProgress } from '../lib/targetService';
+import { getKasbonList, addKasbonRecord } from '../lib/kasbonService';
 
 export default function PayrollView({ currentUser }) {
   const isOwner = currentUser?.role === ROLES.OWNER || currentUser?.role === ROLES.MANAGER;
@@ -34,6 +35,7 @@ export default function PayrollView({ currentUser }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [targetConfig, setTargetConfig] = useState(null);
   const [salesRecords, setSalesRecords] = useState([]);
+  const [kasbonRecords, setKasbonRecords] = useState([]);
 
   // New Payroll Form State
   const [formStaffName, setFormStaffName] = useState('');
@@ -81,6 +83,7 @@ export default function PayrollView({ currentUser }) {
     loadPayroll();
     getTargetConfig().then(cfg => setTargetConfig(cfg));
     getDailySalesRecords().then(res => setSalesRecords(res.data || []));
+    getKasbonList().then(list => setKasbonRecords(list || []));
   }, [supabase]);
 
   const monthlyProgress = React.useMemo(() => {
@@ -91,6 +94,22 @@ export default function PayrollView({ currentUser }) {
     // Jika target bulanan tembus (misal Rp 45jt), setiap kru berhak atas 1% omset
     return monthlyProgress.isTargetPassed ? monthlyProgress.bonusPerStaff : 0;
   }, [monthlyProgress]);
+
+  // Hitung sisa kasbon berjalan staf terpilih
+  const activeStaffKasbonBalance = React.useMemo(() => {
+    if (!formStaffName) return 0;
+    const staffTx = kasbonRecords.filter(k => (k.staff_name || '').toLowerCase() === formStaffName.toLowerCase());
+    const pinjam = staffTx.filter(k => k.type === 'kasbon').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    const cicil = staffTx.filter(k => k.type === 'cicilan').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    return Math.max(0, pinjam - cicil);
+  }, [kasbonRecords, formStaffName]);
+
+  // Otomatis isi saran potongan kasbon saat staf berganti
+  useEffect(() => {
+    if (activeStaffKasbonBalance > 0 && !formKasbon) {
+      // Bisa diisi manual atau default 0 / sisa kasbon
+    }
+  }, [activeStaffKasbonBalance, formStaffName]);
 
   const calculateNet = (item) => {
     const basic = Number(item.basic_salary ?? item.basic ?? 0);
@@ -129,13 +148,32 @@ export default function PayrollView({ currentUser }) {
       status: 'Paid'
     };
 
+    // Otomatis catat cicilan pelunasan kasbon jika ada potongan kasbon
+    if (numKas > 0) {
+      try {
+        await addKasbonRecord({
+          entry_date: new Date().toISOString().split('T')[0],
+          staff_name: formStaffName,
+          outlet: 'kedai',
+          type: 'cicilan',
+          amount: numKas,
+          notes: 'Potong Gaji Periode ' + formPeriod,
+          approved_by: currentUser?.name || 'Owner'
+        });
+        const refreshedKasbon = await getKasbonList();
+        setKasbonRecords(refreshedKasbon || []);
+      } catch (e) {
+        console.warn('Gagal auto-catat cicilan kasbon:', e);
+      }
+    }
+
     if (supabase) {
       try {
         const { data, error } = await supabase.from('payroll_records').insert([newRecord]).select().single();
         if (!error && data) {
           setPayrollList([data, ...payrollList]);
           setShowAddModal(false);
-          alert(`Slip gaji untuk ${formStaffName} berhasil disimpan.`);
+          alert('Slip gaji untuk ' + formStaffName + ' berhasil disimpan!' + (numKas > 0 ? ' (Kasbon terpotong otomatis ' + formatIDR(numKas) + ')' : ''));
           return;
         }
       } catch (err) {
@@ -143,12 +181,12 @@ export default function PayrollView({ currentUser }) {
       }
     }
 
-    const localRec = { ...newRecord, id: `pay-${Date.now()}` };
+    const localRec = { ...newRecord, id: 'pay-' + Date.now() };
     const updated = [localRec, ...payrollList];
     setPayrollList(updated);
     localStorage.setItem('baracoffee_real_payroll', JSON.stringify(updated));
     setShowAddModal(false);
-    alert(`Slip gaji untuk ${formStaffName} berhasil disimpan!`);
+    alert('Slip gaji untuk ' + formStaffName + ' berhasil disimpan!' + (numKas > 0 ? ' (Kasbon terpotong otomatis ' + formatIDR(numKas) + ')' : ''));
   };
 
   const handleDeletePayroll = async (id, staffName) => {
@@ -431,7 +469,28 @@ export default function PayrollView({ currentUser }) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div className="form-group">
-                    <label className="form-label"><span>Potongan Kasbon:</span></label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label className="form-label" style={{ margin: 0 }}><span>Potongan Kasbon:</span></label>
+                      {activeStaffKasbonBalance > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setFormKasbon(String(activeStaffKasbonBalance))}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: 'var(--danger)',
+                            borderRadius: '6px',
+                            padding: '2px 6px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                          title="Klik untuk potong seluruh sisa kasbon berjalan"
+                        >
+                          Sisa: {formatIDR(activeStaffKasbonBalance)} (Lunasi)
+                        </button>
+                      )}
+                    </div>
                     <input type="number" placeholder="0" value={formKasbon} onChange={(e) => setFormKasbon(e.target.value)} className="form-input" />
                   </div>
                   <div className="form-group">
