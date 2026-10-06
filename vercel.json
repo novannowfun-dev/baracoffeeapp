@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-kasirpro/(.*)",
+      "destination": "https://api.kasirpro.com/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

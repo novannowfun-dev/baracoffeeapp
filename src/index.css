@@ -1,0 +1,1117 @@
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Bara Coffee Palette (Signature Royal Indigo & Slate Blue) */
+  --burgundy-primary: #4F46E5;
+  --burgundy-light: #6366F1;
+  --burgundy-hover: #4338CA;
+  --burgundy-dark: #3730A3;
+  --burgundy-glow: rgba(79, 70, 229, 0.18);
+  --burgundy-subtle: rgba(79, 70, 229, 0.08);
+
+  /* Light Theme Surfaces (Clean Modern Slate & Crisp White) */
+  --bg-deep: #F8FAFC;
+  --bg-surface: #F1F5F9;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  --bg-input: #F8FAFC;
+  
+  --border-subtle: rgba(79, 70, 229, 0.12);
+  --border-hover: rgba(79, 70, 229, 0.32);
+  --border-focus: #4F46E5;
+
+  /* Accent Highlights (Indigo & Vibrant Amber Gold) */
+  --gold-primary: #4F46E5;
+  --gold-light: #4F46E5;
+  --gold-accent: #D97706;
+  --gold-glow: rgba(79, 70, 229, 0.14);
+  --amber-dark: #3730A3;
+  --amber-primary: #4F46E5;
+  
+  /* Text (Modern Dark Slate Neutrals) */
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  
+  /* Status (Tailored for Light Theme) */
+  --success: #0D9488;
+  --success-bg: rgba(13, 148, 136, 0.1);
+  --danger: #E11D48;
+  --danger-bg: rgba(225, 29, 72, 0.08);
+  --warning: #D97706;
+  --warning-bg: rgba(217, 119, 6, 0.1);
+  --info: #0284C7;
+  --info-bg: rgba(2, 132, 199, 0.1);
+
+  /* Radius & Shadows */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --shadow-card: 0 4px 20px -2px rgba(79, 70, 229, 0.08), 0 2px 8px -1px rgba(0, 0, 0, 0.04);
+  --shadow-gold: 0 4px 16px rgba(79, 70, 229, 0.18);
+  --shadow-burgundy: 0 6px 20px rgba(79, 70, 229, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(circle at 10% 8%, rgba(79, 70, 229, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 90% 92%, rgba(194, 135, 62, 0.05) 0%, transparent 45%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: #E2D7D4;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--burgundy-primary);
+}
+
+/* Typography Helpers */
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Glassmorphism Card (Light Theme: Clean White & Gentle Shadow) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 26px -2px rgba(79, 70, 229, 0.12);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  font-family: var(--font-sans);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  filter: brightness(1.02);
+}
+
+.btn-secondary {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  color: var(--burgundy-primary);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--burgundy-primary);
+  border: 1px solid var(--border-hover);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--burgundy-subtle);
+  border-color: var(--burgundy-primary);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form Controls */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: var(--burgundy-primary);
+  box-shadow: 0 0 0 3px var(--burgundy-glow);
+}
+
+.form-input.number-field {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: fit-content;
+  vertical-align: middle;
+}
+
+.badge-primary {
+  background: var(--burgundy-subtle);
+  color: var(--burgundy-primary);
+  border: 1px solid rgba(79, 70, 229, 0.22);
+}
+
+.badge-gold {
+  background: var(--burgundy-subtle);
+  color: var(--burgundy-primary);
+  border: 1px solid rgba(79, 70, 229, 0.25);
+}
+
+.badge-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+}
+
+.badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+.badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.badge-info {
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid rgba(2, 132, 199, 0.25);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulse Glow */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
+}
+.pulse-dot {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* ==========================================================================
+   MODAL DIALOG & POPUP SYSTEM (PRECISION CENTERED & RESPONSIVE)
+   ========================================================================== */
+.modal-overlay,
+.print-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(28, 18, 20, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 16px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.modal-container {
+  width: 100%;
+  margin: auto;
+  max-height: min(90vh, calc(100vh - 32px));
+  overflow-y: auto;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Custom sleek scrollbar for modal content */
+.modal-overlay::-webkit-scrollbar,
+.print-modal-overlay::-webkit-scrollbar,
+.glass-card::-webkit-scrollbar,
+.printable-document::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.modal-overlay::-webkit-scrollbar-track,
+.print-modal-overlay::-webkit-scrollbar-track,
+.glass-card::-webkit-scrollbar-track,
+.printable-document::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.modal-overlay::-webkit-scrollbar-track,
+.print-modal-overlay::-webkit-scrollbar-track,
+.glass-card::-webkit-scrollbar-track,
+.printable-document::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+.modal-overlay::-webkit-scrollbar-thumb,
+.print-modal-overlay::-webkit-scrollbar-thumb,
+.glass-card::-webkit-scrollbar-thumb,
+.printable-document::-webkit-scrollbar-thumb {
+  background: rgba(79, 70, 229, 0.25);
+  border-radius: 4px;
+}
+.modal-overlay::-webkit-scrollbar-thumb:hover,
+.print-modal-overlay::-webkit-scrollbar-thumb:hover,
+.glass-card::-webkit-scrollbar-thumb:hover,
+.printable-document::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 70, 229, 0.45);
+}
+
+/* ==========================================================================
+   NAVBAR & RESPONSIVE APP SHELL (BARA COFFEE BAKE & BREW - LIGHT THEME)
+   ========================================================================== */
+.navbar-container {
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 10px 20px;
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.04);
+}
+
+.navbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.brand-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+  filter: drop-shadow(0 4px 10px rgba(79, 70, 229, 0.3));
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+  border: 1.5px solid rgba(79, 70, 229, 0.25);
+  background: #ffffff;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.navbar-brand:hover .brand-logo-img {
+  transform: scale(1.06);
+}
+
+.brand-logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #F3ECE5 0%, #FFFFFF 100%);
+  border: 1px solid var(--border-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+}
+
+.brand-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--burgundy-subtle);
+  color: var(--burgundy-primary);
+  border: 1px solid rgba(79, 70, 229, 0.22);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.brand-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.navbar-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.navbar-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile Bottom Dock (Hidden on Desktop) */
+.navbar-mobile-dock {
+  display: none;
+}
+
+/* App Main Content Container */
+.app-main-content {
+  flex: 1;
+  padding: 24px 20px;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Tables in Light Theme */
+th {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+tr:hover td {
+  background: rgba(79, 70, 229, 0.02);
+}
+
+/* ==========================================================================
+   MOBILE & SMARTPHONE OPTIMIZATIONS (SCREENS <= 768px - LIGHT THEME)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Header & Navbar on Mobile */
+  .navbar-container {
+    padding: 8px 12px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+  }
+  
+  .navbar-inner {
+    width: 100%;
+  }
+
+  .navbar-brand {
+    gap: 10px !important;
+  }
+
+  .brand-logo-img {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 9px !important;
+  }
+
+  .brand-logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 9px !important;
+  }
+  .brand-logo-icon svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .navbar-brand h1 {
+    font-size: 1.02rem !important;
+    font-weight: 800 !important;
+  }
+
+  .brand-badge {
+    display: none !important;
+  }
+
+  .brand-subtitle {
+    display: none !important;
+  }
+
+  /* Sembunyikan Nav Desktop yang menumpuk di atas */
+  .navbar-desktop-nav {
+    display: none !important;
+  }
+
+  /* User profile pill on mobile */
+  .navbar-user-btn {
+    padding: 4px 8px !important;
+    max-width: 135px !important;
+  }
+  .navbar-user-name {
+    max-width: 70px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* 2. Sleek Mobile Bottom Navigation Dock (Bara Coffee Light Theme) */
+  .navbar-mobile-dock {
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr) !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: auto !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(79, 70, 229, 0.15) !important;
+    z-index: 999 !important;
+    padding-top: 4px !important;
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 6px)) !important;
+    box-shadow: 0 -4px 20px rgba(79, 70, 229, 0.08) !important;
+  }
+
+  .mobile-dock-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted) !important;
+    font-size: 0.61rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+    padding: 3px 1px !important;
+    gap: 2px !important;
+    cursor: pointer !important;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    min-height: 48px !important;
+    touch-action: manipulation !important;
+    user-select: none !important;
+    position: relative !important;
+    border-radius: 10px !important;
+  }
+
+  .mobile-dock-btn:active {
+    transform: scale(0.92) !important;
+  }
+
+  .mobile-dock-btn svg {
+    width: 19px !important;
+    height: 19px !important;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .mobile-dock-btn.active {
+    color: var(--burgundy-primary) !important;
+    background: rgba(79, 70, 229, 0.08) !important;
+  }
+
+  .mobile-dock-btn.active svg {
+    color: var(--burgundy-primary) !important;
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 4px rgba(79, 70, 229, 0.3));
+  }
+
+  .mobile-dock-btn.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 2.5px;
+    background: var(--burgundy-primary);
+    border-radius: 0 0 3px 3px;
+    box-shadow: 0 0 6px rgba(79, 70, 229, 0.4);
+  }
+
+  /* 3. Main Content Spacing on Mobile (No overlap with dock) */
+  .app-main-content {
+    padding: 12px 10px calc(80px + env(safe-area-inset-bottom, 12px)) 10px !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Sembunyikan Desktop Footer di Layar HP */
+  .app-footer {
+    display: none !important;
+  }
+
+  /* 4. Glass Cards on Mobile */
+  .glass-card {
+    padding: 14px 14px !important;
+    border-radius: var(--radius-md) !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* Reset margin on cards inside grids so gaps stay strictly uniform */
+  [style*="display: grid"] > .glass-card,
+  [style*="display:grid"] > .glass-card,
+  [style*="grid-template-columns"] > .glass-card,
+  [style*="gridTemplateColumns"] > .glass-card,
+  .attendance-kpi-grid > .glass-card,
+  .dashboard-kpi-grid > .glass-card {
+    margin-bottom: 0 !important;
+  }
+
+  /* 5. Typography Scale on Mobile (Precise & Harmonious) */
+  /* Main Page Header Titles */
+  .page-title,
+  .app-main-content h1:not(.live-clock-time),
+  .app-main-content h2:not(.modal-title):not([style*="color: #4F46E5"]):not([style*="color:#4F46E5"]) {
+    font-size: 1.32rem !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  /* Page subtitles */
+  .page-subtitle,
+  .app-main-content > div > div > p {
+    font-size: 0.82rem !important;
+    line-height: 1.4 !important;
+    color: var(--text-secondary) !important;
+  }
+
+  /* Card section titles (e.g. 1. Waktu Operasional, 2. Omset Penjualan) */
+  .glass-card > h3,
+  .form-section-title {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* Specific KPI Stat numbers in dashboard and attendance (keep them prominent) */
+  .attendance-kpi-grid h3,
+  .dashboard-kpi-grid h3,
+  .stat-card-value {
+    font-size: 1.45rem !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+  }
+
+  /* Attendance Live Clock Header */
+  .live-clock-time {
+    font-size: clamp(1.85rem, 8.5vw, 2.35rem) !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  /* Badge positioning and text protection on Mobile */
+  .badge {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    font-size: 0.72rem !important;
+    padding: 3px 8px !important;
+    max-width: fit-content !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Hide verbose subtab badge on narrow mobile screens */
+  .badge-hide-mobile {
+    display: none !important;
+  }
+
+  /* 6. Form Inputs & Buttons (Zero Zoom on iOS Safari) */
+  input, select, textarea, .form-input, .form-select {
+    font-size: 16px !important; /* WAJIB 16px agar Safari iOS tidak auto-zoom */
+    min-height: 44px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .btn {
+    min-height: 42px !important;
+    font-size: 0.85rem !important;
+    padding: 8px 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    touch-action: manipulation !important;
+  }
+
+  /* 7. Sub-Tab Container Touch Scrolling */
+  .subtab-container {
+    display: flex !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 6px !important;
+    scrollbar-width: none !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .subtab-container::-webkit-scrollbar {
+    display: none !important;
+  }
+  .subtab-container > button,
+  .subtab-container > div {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* 8. Top Hero Action Buttons on Mobile */
+  .attendance-hero-actions,
+  .action-header-group {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    margin-top: 8px !important;
+  }
+  .attendance-hero-actions .btn:first-child {
+    flex: 1 1 100% !important;
+    min-height: 46px !important;
+    justify-content: center !important;
+    font-size: 0.95rem !important;
+  }
+  .attendance-hero-actions .btn:not(:first-child) {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+
+  .action-header-group .btn {
+    flex: 1 1 auto !important;
+    padding: 7px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* 9. Daily Form Submit Buttons Mobile Layout */
+  .form-actions-mobile {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .form-actions-mobile .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 48px !important;
+  }
+
+  /* 10. Grid Layouts & Cards on Mobile */
+  /* Attendance 5 KPI cards: 2x2 grid + full-width 5th card */
+  .attendance-kpi-grid,
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))'"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr))"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+  }
+  .attendance-kpi-grid > .glass-card {
+    margin-bottom: 0 !important;
+    padding: 12px 12px !important;
+  }
+  .attendance-kpi-grid > .glass-card:last-child {
+    grid-column: span 2 !important;
+  }
+
+  /* Dashboard 4 KPI cards: 1 column clean vertical stack */
+  .dashboard-kpi-grid,
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))'"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))"] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+  .dashboard-kpi-grid > .glass-card {
+    padding: 14px 16px !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Dashboard Goals Banner on Mobile */
+  .goals-card-header {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .goals-info-boxes {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .goals-info-boxes > div {
+    text-align: left !important;
+    padding: 8px 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Shift Selection Cards (Side-by-side 2 columns on mobile) */
+  .shift-selection-grid,
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .shift-selection-grid > div {
+    margin-bottom: 0 !important;
+    padding: 10px 12px !important;
+  }
+
+  /* General multi-column cards full-width */
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))'"],
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))'"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Slip Appraisal Matriks: 4 columns collapse into 2x2 */
+  .appraisal-kpi-matriks,
+  [style*="gridTemplateColumns: 'repeat(4, 1fr)'"],
+  [style*="grid-template-columns: repeat(4, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  /* Slip Employee Header 1.4fr 1fr stack */
+  [style*="gridTemplateColumns: '1.4fr 1fr'"],
+  [style*="grid-template-columns: 1.4fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  [style*="gridTemplateColumns: '1.4fr 1fr'"] > div:last-child,
+  [style*="grid-template-columns: 1.4fr 1fr"] > div:last-child {
+    text-align: left !important;
+    border-left: none !important;
+    border-top: 1px solid #e0d5c5 !important;
+    padding-left: 0 !important;
+    padding-top: 10px !important;
+  }
+
+  /* 11. Petty Cash item row stacked on mobile */
+  .petty-cash-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    background: rgba(79, 70, 229, 0.04) !important;
+    padding: 12px 10px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-subtle) !important;
+    gap: 8px !important;
+  }
+
+  .petty-cash-row input,
+  .petty-cash-row select,
+  .petty-cash-row > div {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex: none !important;
+  }
+
+  .petty-cash-row > button {
+    align-self: flex-end !important;
+    padding: 6px 14px !important;
+    background: rgba(225, 29, 72, 0.08) !important;
+    border-radius: 6px !important;
+  }
+
+  /* 12. Tables Smooth Touch Scrolling & Containment */
+  .table-responsive,
+  div:has(> table),
+  .glass-card > div:has(table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    scrollbar-width: thin !important;
+    border-radius: var(--radius-sm);
+  }
+  table {
+    font-size: 0.8rem !important;
+    min-width: 520px !important;
+  }
+  th, td {
+    padding: 9px 8px !important;
+  }
+
+  /* 13. Modals & Slips on Mobile */
+  .modal-overlay,
+  .print-modal-overlay,
+  div[style*="position: 'fixed'"][style*="zIndex: 1050"],
+  div[style*="position: 'fixed'"][style*="zIndex: 2000"],
+  div[style*="position: fixed"][style*="z-index: 1050"],
+  div[style*="position: fixed"][style*="z-index: 2000"] {
+    padding: 8px !important;
+  }
+
+  .modal-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: 16px !important;
+    padding: 18px 14px !important;
+    margin: auto !important;
+  }
+
+  .printable-document {
+    padding: 16px 14px !important;
+    margin: auto !important;
+    border-radius: 12px !important;
+    max-width: 100% !important;
+  }
+  .printable-document h2 {
+    font-size: 1.15rem !important;
+  }
+}
+
+/* Extra Small Screens (<= 480px, e.g. iPhone SE, 360px Android) */
+@media (max-width: 480px) {
+  .mobile-dock-btn {
+    font-size: 0.58rem !important;
+  }
+  .mobile-dock-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .attendance-kpi-grid .glass-card {
+    padding: 12px 10px !important;
+  }
+  .badge {
+    font-size: 0.72rem !important;
+    padding: 2px 7px !important;
+  }
+  .btn {
+    font-size: 0.82rem !important;
+    padding: 7px 12px !important;
+  }
+}
+
+/* ==========================================================================
+   PRINT STYLES FOR SLIPS & REPORTS (BARA COFFEE CAFE)
+   ========================================================================== */
+@media print {
+  /* 1. Sembunyikan SELURUH elemen aplikasi web utama (#root dan semua selain .print-modal-overlay) */
+  #root,
+  body > *:not(.print-modal-overlay) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+  }
+
+  /* 2. Sembunyikan elemen non-cetak, tombol, navbar, dan input di dalam dokumen cetak */
+  header, nav, .header-bar, .tab-nav, .no-print, button, input, select, textarea {
+    display: none !important;
+  }
+
+  /* 3. Reset Body & HTML agar bersih putih polos saat dicetak */
+  html, body {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #111111 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 8mm 10mm;
+  }
+
+  /* 4. Overlay cetak menjadi kontainer dokumen statis bersih */
+  .print-modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 1 !important;
+  }
+
+  /* 5. Kontainer Dokumen / Slip / Rapor Resmi */
+  .printable-document {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 8mm 12mm !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  }
+
+  /* Thermal POS receipt print formatting (80mm) */
+  .printable-pos-receipt {
+    width: 78mm !important;
+    max-width: 78mm !important;
+    margin: 0 auto !important;
+    padding: 6mm 4mm !important;
+    font-size: 9.5pt !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Force borders & high contrast */
+  .print-border {
+    border-color: #333333 !important;
+  }
+  .print-text-dark {
+    color: #111111 !important;
+  }
+  .print-text-muted {
+    color: #555555 !important;
+  }
+  .print-bg-light {
+    background-color: #f4f4f4 !important;
+  }
+}
+
+/* Settings Sidebar Responsive Layout */
+.settings-layout-grid {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .settings-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .settings-sidebar-nav {
+    position: static !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding: 6px !important;
+    margin-bottom: 4px !important;
+  }
+  .settings-sidebar-header {
+    display: none !important;
+  }
+  .settings-sidebar-btn {
+    padding: 8px 14px !important;
+    font-size: 0.84rem !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    flex: 0 0 auto !important;
+  }
+}
