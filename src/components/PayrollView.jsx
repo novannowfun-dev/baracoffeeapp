@@ -95,14 +95,27 @@ export default function PayrollView({ currentUser }) {
     return monthlyProgress.isTargetPassed ? monthlyProgress.bonusPerStaff : 0;
   }, [monthlyProgress]);
 
-  // Hitung sisa kasbon berjalan staf terpilih
-  const activeStaffKasbonBalance = React.useMemo(() => {
-    if (!formStaffName) return 0;
+  // Hitung sisa kasbon & pinjaman berjangka staf terpilih
+  const activeStaffLoanInfo = React.useMemo(() => {
+    if (!formStaffName) return { balance: 0, activeLoan: null, paidCount: 0, nextInstallment: 0 };
     const staffTx = kasbonRecords.filter(k => (k.staff_name || '').toLowerCase() === formStaffName.toLowerCase());
-    const pinjam = staffTx.filter(k => k.type === 'kasbon').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    const pinjam = staffTx.filter(k => k.type === 'kasbon' || k.type === 'pinjaman').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
     const cicil = staffTx.filter(k => k.type === 'cicilan').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
-    return Math.max(0, pinjam - cicil);
+    const balance = Math.max(0, pinjam - cicil);
+    const activeLoan = staffTx.find(k => k.type === 'pinjaman' && Number(k.tenor_months) > 1) || null;
+    const paidCount = staffTx.filter(k => k.type === 'cicilan').length;
+    const nextIndex = paidCount + 1;
+    const monthly = activeLoan ? (Number(activeLoan.monthly_installment) || Math.round(Number(activeLoan.amount) / Number(activeLoan.tenor_months))) : balance;
+    return {
+      balance,
+      activeLoan,
+      paidCount,
+      nextIndex,
+      suggestedAmount: activeLoan ? Math.min(monthly, balance) : balance
+    };
   }, [kasbonRecords, formStaffName]);
+
+  const activeStaffKasbonBalance = activeStaffLoanInfo.balance;
 
   // Otomatis isi saran potongan kasbon saat staf berganti
   useEffect(() => {
@@ -143,6 +156,7 @@ export default function PayrollView({ currentUser }) {
       overtime_pay: numOt,
       bonus: numBon,
       kasbon_deduction: numKas,
+      loan_installment_info: activeStaffLoanInfo.activeLoan && numKas > 0 ? ('Cicilan ke-' + activeStaffLoanInfo.nextIndex + ' dari ' + activeStaffLoanInfo.activeLoan.tenor_months) : null,
       absence_deduction: numAbs,
       net_salary: net,
       status: 'Paid'
@@ -157,7 +171,7 @@ export default function PayrollView({ currentUser }) {
           outlet: 'kedai',
           type: 'cicilan',
           amount: numKas,
-          notes: 'Potong Gaji Periode ' + formPeriod,
+          notes: activeStaffLoanInfo.activeLoan ? ('Cicilan ke-' + activeStaffLoanInfo.nextIndex + ' dari ' + activeStaffLoanInfo.activeLoan.tenor_months + ' bln (Gaji ' + formPeriod + ')') : ('Potong Gaji Periode ' + formPeriod),
           approved_by: currentUser?.name || 'Owner'
         });
         const refreshedKasbon = await getKasbonList();
@@ -471,24 +485,44 @@ export default function PayrollView({ currentUser }) {
                   <div className="form-group">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <label className="form-label" style={{ margin: 0 }}><span>Potongan Kasbon:</span></label>
-                      {activeStaffKasbonBalance > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setFormKasbon(String(activeStaffKasbonBalance))}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.12)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            color: 'var(--danger)',
-                            borderRadius: '6px',
-                            padding: '2px 6px',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                          title="Klik untuk potong seluruh sisa kasbon berjalan"
-                        >
-                          Sisa: {formatIDR(activeStaffKasbonBalance)} (Lunasi)
-                        </button>
+                      {activeStaffLoanInfo.balance > 0 && (
+                        activeStaffLoanInfo.activeLoan ? (
+                          <button
+                            type="button"
+                            onClick={() => setFormKasbon(String(activeStaffLoanInfo.suggestedAmount))}
+                            style={{
+                              background: 'rgba(79, 70, 229, 0.12)',
+                              border: '1px solid rgba(79, 70, 229, 0.35)',
+                              color: '#4f46e5',
+                              borderRadius: '6px',
+                              padding: '2px 6px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                            title='Klik untuk isi cicilan rutin bulan ini'
+                          >
+                            Cicilan ke-{activeStaffLoanInfo.nextIndex}/{activeStaffLoanInfo.activeLoan.tenor_months}: {formatIDR(activeStaffLoanInfo.suggestedAmount)}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setFormKasbon(String(activeStaffLoanInfo.balance))}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#dc2626',
+                              borderRadius: '6px',
+                              padding: '2px 6px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                            title='Klik untuk potong seluruh sisa kasbon'
+                          >
+                            Sisa: {formatIDR(activeStaffLoanInfo.balance)} (Lunasi)
+                          </button>
+                        )
                       )}
                     </div>
                     <input type="number" placeholder="0" value={formKasbon} onChange={(e) => setFormKasbon(e.target.value)} className="form-input" />

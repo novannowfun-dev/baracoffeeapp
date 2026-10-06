@@ -33,7 +33,11 @@ export async function addKasbonRecord(record) {
     staff_name: record.staff_name,
     staff_id: record.staff_id || null,
     outlet: record.outlet || 'kedai',
-    type: record.type || 'kasbon', // 'kasbon' (pinjam) or 'cicilan' (bayar)
+    type: record.type || 'kasbon', // 'kasbon' (pinjam jangka pendek), 'pinjaman' (cicilan berjangka), 'cicilan' (bayar)
+    tenor_months: Number(record.tenor_months) || 1, // Durasi cicilan (misal 12 bulan)
+    installment_index: Number(record.installment_index) || null, // Cicilan ke-X
+    total_installments: Number(record.total_installments) || null, // Total cicilan (misal 12)
+    monthly_installment: Number(record.monthly_installment) || null, // Cicilan rutin per bulan
     amount: Number(record.amount) || 0,
     notes: record.notes || '',
     approved_by: record.approved_by || 'Owner',
@@ -96,20 +100,26 @@ export function computeStaffKasbonSummary(records) {
         totalPinjaman: 0,
         totalCicilan: 0,
         sisaHutang: 0,
+        activeLoan: null, // Pinjaman berjangka yang sedang aktif
+        paidInstallmentCount: 0, // Sudah bayar cicilan ke berapa
         transactions: []
       };
     }
     const amt = Number(r.amount) || 0;
-    if (r.type === 'kasbon') {
+    if (r.type === 'kasbon' || r.type === 'pinjaman') {
       summary[name].totalPinjaman += amt;
-    } else {
+      if (r.type === 'pinjaman' && Number(r.tenor_months) > 1) {
+        summary[name].activeLoan = r;
+      }
+    } else if (r.type === 'cicilan') {
       summary[name].totalCicilan += amt;
+      summary[name].paidInstallmentCount += 1;
     }
     summary[name].transactions.push(r);
   });
 
   Object.values(summary).forEach(s => {
-    s.sisaHutang = s.totalPinjaman - s.totalCicilan;
+    s.sisaHutang = Math.max(0, s.totalPinjaman - s.totalCicilan);
   });
 
   return Object.values(summary);

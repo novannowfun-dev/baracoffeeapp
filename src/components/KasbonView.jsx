@@ -24,7 +24,8 @@ export default function KasbonView({ currentUser, activeOutlet }) {
   const [form, setForm] = useState({
     staff_name: '',
     outlet: activeOutlet || 'kedai',
-    type: 'kasbon', // 'kasbon' or 'cicilan'
+    type: 'kasbon', // 'kasbon', 'pinjaman', or 'cicilan'
+    tenor_months: '12',
     amount: '',
     notes: '',
     entry_date: new Date().toISOString().split('T')[0]
@@ -109,8 +110,14 @@ export default function KasbonView({ currentUser, activeOutlet }) {
 
     setSubmitting(true);
     try {
+      const numAmt = Number(form.amount) || 0;
+      const tenor = (form.type === 'pinjaman') ? (Number(form.tenor_months) || 12) : 1;
+      const monthly = (form.type === 'pinjaman') ? Math.round(numAmt / tenor) : numAmt;
       await addKasbonRecord({
         ...form,
+        amount: numAmt,
+        tenor_months: tenor,
+        monthly_installment: monthly,
         approved_by: currentUser?.name || 'Owner'
       });
       setFeedback({ type: 'success', msg: `Berhasil mencatat transaksi kasbon untuk ${form.staff_name}` });
@@ -271,7 +278,7 @@ export default function KasbonView({ currentUser, activeOutlet }) {
                   <th style={{ padding: '12px 14px' }}>Total Pinjaman</th>
                   <th style={{ padding: '12px 14px' }}>Sudah Dicicil</th>
                   <th style={{ padding: '12px 14px' }}>Sisa Hutang Kasbon</th>
-                  <th style={{ padding: '12px 14px' }}>Status</th>
+                  <th style={{ padding: '12px 14px' }}>Status & Progress Pinjaman</th>
                   <th style={{ padding: '12px 14px', textAlign: 'center' }}>Aksi</th>
                 </tr>
               </thead>
@@ -301,9 +308,16 @@ export default function KasbonView({ currentUser, activeOutlet }) {
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         {s.sisaHutang > 0 ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(239, 68, 68, 0.12)', color: '#DC2626' }}>
-                            <AlertTriangle size={12} /> Belum Lunas
-                          </span>
+                          <div>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(239, 68, 68, 0.12)', color: '#DC2626' }}>
+                              <AlertTriangle size={12} /> Belum Lunas
+                            </span>
+                            {s.activeLoan && (
+                              <div style={{ marginTop: '4px', fontSize: '0.72rem', color: '#4f46e5', fontWeight: 700 }}>
+                                Cicilan ke-{s.paidInstallmentCount} dari {s.activeLoan.tenor_months} bln
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}>
                             <CheckCircle size={12} /> Lunas
@@ -428,13 +442,17 @@ export default function KasbonView({ currentUser, activeOutlet }) {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className='form-group' style={{ margin: 0 }}>
                 <label className='form-label'>Jenis Transaksi</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <button type='button' onClick={() => setForm({ ...form, type: 'kasbon' })} className={'btn ' + (form.type === 'kasbon' ? 'btn-primary' : 'btn-secondary')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', fontWeight: 700, fontSize: '0.86rem' }}>
-                    <ArrowDownRight size={15} />
-                    <span>Kasbon (Pinjam)</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '6px' }}>
+                  <button type='button' onClick={() => setForm({ ...form, type: 'kasbon' })} className={'btn ' + (form.type === 'kasbon' ? 'btn-primary' : 'btn-secondary')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 4px', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem' }}>
+                    <ArrowDownRight size={14} />
+                    <span>Kasbon Singkat</span>
                   </button>
-                  <button type='button' onClick={() => setForm({ ...form, type: 'cicilan' })} className={'btn ' + (form.type === 'cicilan' ? 'btn-primary' : 'btn-secondary')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', fontWeight: 700, fontSize: '0.86rem' }}>
-                    <ArrowUpRight size={15} />
+                  <button type='button' onClick={() => setForm({ ...form, type: 'pinjaman' })} className={'btn ' + (form.type === 'pinjaman' ? 'btn-primary' : 'btn-secondary')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 4px', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem', background: form.type === 'pinjaman' ? 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)' : undefined }}>
+                    <Wallet size={14} />
+                    <span>Pinjaman Berjangka</span>
+                  </button>
+                  <button type='button' onClick={() => setForm({ ...form, type: 'cicilan' })} className={'btn ' + (form.type === 'cicilan' ? 'btn-primary' : 'btn-secondary')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '8px 4px', borderRadius: '8px', fontWeight: 700, fontSize: '0.78rem' }}>
+                    <ArrowUpRight size={14} />
                     <span>Cicilan (Bayar)</span>
                   </button>
                 </div>
@@ -465,13 +483,40 @@ export default function KasbonView({ currentUser, activeOutlet }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
                 <div className='form-group' style={{ margin: 0 }}>
                   <label className='form-label'>Nominal (Rp)</label>
-                  <input type='number' required step='1000' min='1000' className='form-input' placeholder='Contoh: 100000' value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+                  <input type='number' required step='1000' min='1000' className='form-input' placeholder='Contoh: 5000000' value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
                 </div>
                 <div className='form-group' style={{ margin: 0 }}>
                   <label className='form-label'>Tanggal</label>
                   <input type='date' required className='form-input' value={form.entry_date} onChange={e => setForm({ ...form, entry_date: e.target.value })} />
                 </div>
               </div>
+
+              {form.type === 'pinjaman' && (
+                <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(79, 70, 229, 0.08)', border: '1px solid rgba(79, 70, 229, 0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--burgundy-primary)' }}>Durasi Cicilan (Tenor Bulan):</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Misal: 12 Bulan (1 Tahun)</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '8px' }}>
+                    {['3', '6', '10', '12'].map(t => (
+                      <button
+                        key={t}
+                        type='button'
+                        onClick={() => setForm({ ...form, tenor_months: t })}
+                        className={'btn ' + (form.tenor_months === t ? 'btn-primary' : 'btn-secondary')}
+                        style={{ fontSize: '0.75rem', padding: '6px' }}
+                      >
+                        {t} Bulan
+                      </button>
+                    ))}
+                  </div>
+                  {Number(form.amount) > 0 && (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Potongan Otomatis Gaji: <strong style={{ color: 'var(--burgundy-primary)' }}>{formatRupiah(Math.round(Number(form.amount) / (Number(form.tenor_months) || 12)))}</strong> / bulan
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className='form-group' style={{ margin: 0 }}>
                 <label className='form-label'>Keterangan / Keperluan</label>
