@@ -3,9 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const STORAGE_KEY_URL = 'baracoffee_supabase_url';
 const STORAGE_KEY_KEY = 'baracoffee_supabase_key';
 
+const DEFAULT_SUPABASE_URL = 'https://izrshkfchvxzctbeeqcy.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cnNoa2ZjaHZ4emN0YmVlcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyOTEyOTAsImV4cCI6MjEwNjg2NzI5MH0.HQUPMAVe77M0kcjdPtq3pHoS8DA3w3Zurq3ofPVCNko';
+
 export function getSupabaseConfig() {
-  const url = localStorage.getItem(STORAGE_KEY_URL) || import.meta.env.VITE_SUPABASE_URL || '';
-  const key = localStorage.getItem(STORAGE_KEY_KEY) || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  const url = localStorage.getItem(STORAGE_KEY_URL) || import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const key = localStorage.getItem(STORAGE_KEY_KEY) || import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
   return { url: url.trim(), key: key.trim() };
 }
 

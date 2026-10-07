@@ -1,7 +1,9 @@
 const STORAGE_KEY_WEBHOOK = 'baracoffee_sheets_webhook';
 
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwcJBlEs9XQS4yEV3ZI26eKEOtIRR43nFiehQ4yCKTiW8f1qmMhZHiTtWXco62Qr8AVyw/exec';
+
 export function getSheetsWebhookUrl() {
-  return localStorage.getItem(STORAGE_KEY_WEBHOOK) || import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL || '';
+  return localStorage.getItem(STORAGE_KEY_WEBHOOK) || import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
 }
 
 export function saveSheetsWebhookUrl(url) {
