@@ -44,6 +44,7 @@ export default function PayrollView({ currentUser }) {
   const [formOvertime, setFormOvertime] = useState('');
   const [formBonus, setFormBonus] = useState('');
   const [formKasbon, setFormKasbon] = useState('');
+  const [formLoan, setFormLoan] = useState('');
   const [formAbsence, setFormAbsence] = useState('');
   const [formPeriod, setFormPeriod] = useState('September 2026');
 
@@ -95,34 +96,48 @@ export default function PayrollView({ currentUser }) {
     return monthlyProgress.isTargetPassed ? monthlyProgress.bonusPerStaff : 0;
   }, [monthlyProgress]);
 
-  // Hitung sisa kasbon & pinjaman berjangka staf terpilih
+  // Hitung saldo Kasbon Singkat & Pinjaman Berjangka staf terpilih
   const activeStaffLoanInfo = React.useMemo(() => {
-    if (!formStaffName) return { balance: 0, activeLoan: null, paidCount: 0, nextInstallment: 0 };
+    if (!formStaffName) return { 
+      kasbonBalance: 0, 
+      activeLoan: null, 
+      loanBalance: 0, 
+      totalDebt: 0, 
+      paidLoanCount: 0, 
+      nextIndex: 1, 
+      suggestedLoanMonthly: 0 
+    };
+
     const staffTx = kasbonRecords.filter(k => (k.staff_name || '').toLowerCase() === formStaffName.toLowerCase());
-    const pinjam = staffTx.filter(k => k.type === 'kasbon' || k.type === 'pinjaman').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
-    const cicil = staffTx.filter(k => k.type === 'cicilan').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
-    const balance = Math.max(0, pinjam - cicil);
+    
+    // 1. Kasbon Singkat
+    const shortKasbonTotal = staffTx.filter(k => k.type === 'kasbon').reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    const shortKasbonRepay = staffTx.filter(k => k.type === 'cicilan' && (!k.notes || !k.notes.toLowerCase().includes('berjangka')) && !k.notes?.toLowerCase().includes('tenor')).reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    const kasbonBalance = Math.max(0, shortKasbonTotal - shortKasbonRepay);
+
+    // 2. Pinjaman Berjangka
     const activeLoan = staffTx.find(k => k.type === 'pinjaman' && Number(k.tenor_months) > 1) || null;
-    const paidCount = staffTx.filter(k => k.type === 'cicilan').length;
-    const nextIndex = paidCount + 1;
-    const monthly = activeLoan ? (Number(activeLoan.monthly_installment) || Math.round(Number(activeLoan.amount) / Number(activeLoan.tenor_months))) : balance;
+    const loanTotal = activeLoan ? (Number(activeLoan.amount) || 0) : 0;
+    const loanRepay = staffTx.filter(k => k.type === 'cicilan' && (k.notes?.toLowerCase().includes('berjangka') || k.notes?.toLowerCase().includes('tenor'))).reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    const loanBalance = Math.max(0, loanTotal - loanRepay);
+
+    // Cicilan ke berapa
+    const paidLoanCount = staffTx.filter(k => k.type === 'cicilan' && (k.notes?.toLowerCase().includes('berjangka') || k.notes?.toLowerCase().includes('tenor'))).length;
+    const nextIndex = paidLoanCount + 1;
+    const suggestedLoanMonthly = activeLoan 
+      ? Math.min(Number(activeLoan.monthly_installment) || Math.round(loanTotal / Number(activeLoan.tenor_months)), loanBalance) 
+      : 0;
+
     return {
-      balance,
+      kasbonBalance,
       activeLoan,
-      paidCount,
+      loanBalance,
+      totalDebt: kasbonBalance + loanBalance,
+      paidLoanCount,
       nextIndex,
-      suggestedAmount: activeLoan ? Math.min(monthly, balance) : balance
+      suggestedLoanMonthly
     };
   }, [kasbonRecords, formStaffName]);
-
-  const activeStaffKasbonBalance = activeStaffLoanInfo.balance;
-
-  // Otomatis isi saran potongan kasbon saat staf berganti
-  useEffect(() => {
-    if (activeStaffKasbonBalance > 0 && !formKasbon) {
-      // Bisa diisi manual atau default 0 / sisa kasbon
-    }
-  }, [activeStaffKasbonBalance, formStaffName]);
 
   const calculateNet = (item) => {
     const basic = Number(item.basic_salary ?? item.basic ?? 0);
@@ -130,8 +145,9 @@ export default function PayrollView({ currentUser }) {
     const ot = Number(item.overtime_pay ?? item.overtime ?? 0);
     const bon = Number(item.bonus ?? 0);
     const kas = Number(item.kasbon_deduction ?? item.kasbon ?? 0);
+    const loan = Number(item.loan_deduction ?? 0);
     const abs = Number(item.absence_deduction ?? item.absenceDeduction ?? 0);
-    return Math.max(0, basic + allow + ot + bon - (kas + abs));
+    return Math.max(0, basic + allow + ot + bon - (kas + loan + abs));
   };
 
   const handleSavePayroll = async (e) => {
@@ -144,8 +160,13 @@ export default function PayrollView({ currentUser }) {
     const numOt = Number(formOvertime) || 0;
     const numBon = Number(formBonus) || 0;
     const numKas = Number(formKasbon) || 0;
+    const numLoan = Number(formLoan) || 0;
     const numAbs = Number(formAbsence) || 0;
-    const net = Math.max(0, numBasic + numAllow + numOt + numBon - (numKas + numAbs));
+    const net = Math.max(0, numBasic + numAllow + numOt + numBon - (numKas + numLoan + numAbs));
+
+    const loanInfoStr = activeStaffLoanInfo.activeLoan && numLoan > 0 
+      ? (`Cicilan ke-${activeStaffLoanInfo.nextIndex} dari ${activeStaffLoanInfo.activeLoan.tenor_months} bln`) 
+      : null;
 
     const newRecord = {
       period_month: formPeriod,
@@ -156,13 +177,14 @@ export default function PayrollView({ currentUser }) {
       overtime_pay: numOt,
       bonus: numBon,
       kasbon_deduction: numKas,
-      loan_installment_info: activeStaffLoanInfo.activeLoan && numKas > 0 ? ('Cicilan ke-' + activeStaffLoanInfo.nextIndex + ' dari ' + activeStaffLoanInfo.activeLoan.tenor_months) : null,
+      loan_deduction: numLoan,
+      loan_installment_info: loanInfoStr,
       absence_deduction: numAbs,
       net_salary: net,
       status: 'Paid'
     };
 
-    // Otomatis catat cicilan pelunasan kasbon jika ada potongan kasbon
+    // 1. Catat pembayaran kasbon singkat jika dipotong
     if (numKas > 0) {
       try {
         await addKasbonRecord({
@@ -171,24 +193,72 @@ export default function PayrollView({ currentUser }) {
           outlet: 'kedai',
           type: 'cicilan',
           amount: numKas,
-          notes: activeStaffLoanInfo.activeLoan ? ('Cicilan ke-' + activeStaffLoanInfo.nextIndex + ' dari ' + activeStaffLoanInfo.activeLoan.tenor_months + ' bln (Gaji ' + formPeriod + ')') : ('Potong Gaji Periode ' + formPeriod),
+          notes: `Potong Gaji Kasbon Singkat (Periode ${formPeriod})`,
           approved_by: currentUser?.name || 'Owner'
         });
-        const refreshedKasbon = await getKasbonList();
-        setKasbonRecords(refreshedKasbon || []);
       } catch (e) {
-        console.warn('Gagal auto-catat cicilan kasbon:', e);
+        console.warn('Gagal auto-catat kasbon singkat:', e);
       }
     }
 
+    // 2. Catat pembayaran pinjaman berjangka jika dipotong
+    if (numLoan > 0) {
+      try {
+        await addKasbonRecord({
+          entry_date: new Date().toISOString().split('T')[0],
+          staff_name: formStaffName,
+          outlet: 'kedai',
+          type: 'cicilan',
+          amount: numLoan,
+          notes: activeStaffLoanInfo.activeLoan 
+            ? `Cicilan Berjangka ke-${activeStaffLoanInfo.nextIndex} dari ${activeStaffLoanInfo.activeLoan.tenor_months} bln (Gaji ${formPeriod})` 
+            : `Potong Gaji Pinjaman Berjangka (Periode ${formPeriod})`,
+          approved_by: currentUser?.name || 'Owner'
+        });
+      } catch (e) {
+        console.warn('Gagal auto-catat pinjaman berjangka:', e);
+      }
+    }
+
+    // Segarkan data kasbon
+    if (numKas > 0 || numLoan > 0) {
+      try {
+        const refreshedKasbon = await getKasbonList();
+        setKasbonRecords(refreshedKasbon || []);
+      } catch (e) {}
+    }
+
+    // Simpan ke Supabase jika ada
     if (supabase) {
       try {
         const { data, error } = await supabase.from('payroll_records').insert([newRecord]).select().single();
         if (!error && data) {
           setPayrollList([data, ...payrollList]);
           setShowAddModal(false);
-          alert('Slip gaji untuk ' + formStaffName + ' berhasil disimpan!' + (numKas > 0 ? ' (Kasbon terpotong otomatis ' + formatIDR(numKas) + ')' : ''));
+          alert(`Slip gaji untuk ${formStaffName} berhasil disimpan!\n• Kasbon dipotong: ${formatIDR(numKas)}\n• Cicilan berjangka: ${formatIDR(numLoan)}`);
           return;
+        } else if (error) {
+          console.warn('Supabase payroll insert error, trying fallback without loan_deduction:', error);
+          const fallbackRec = {
+            period_month: formPeriod,
+            staff_name: formStaffName,
+            position: staffPos,
+            basic_salary: numBasic,
+            allowances: numAllow,
+            overtime_pay: numOt,
+            bonus: numBon,
+            kasbon_deduction: numKas + numLoan,
+            absence_deduction: numAbs,
+            net_salary: net,
+            status: 'Paid'
+          };
+          const fallbackRes = await supabase.from('payroll_records').insert([fallbackRec]).select().single();
+          if (!fallbackRes.error && fallbackRes.data) {
+            setPayrollList([{ ...fallbackRes.data, loan_deduction: numLoan, loan_installment_info: loanInfoStr }, ...payrollList]);
+            setShowAddModal(false);
+            alert(`Slip gaji untuk ${formStaffName} berhasil disimpan!\n• Kasbon dipotong: ${formatIDR(numKas)}\n• Cicilan berjangka: ${formatIDR(numLoan)}`);
+            return;
+          }
         }
       } catch (err) {
         console.warn(err);
@@ -264,8 +334,9 @@ export default function PayrollView({ currentUser }) {
                 <th style={{ padding: '12px 14px', textAlign: 'left' }}>Nama & Posisi</th>
                 <th style={{ padding: '12px 14px', textAlign: 'left' }}>Periode</th>
                 <th style={{ padding: '12px 14px', textAlign: 'right' }}>Gaji Pokok</th>
-                <th style={{ padding: '12px 14px', textAlign: 'right' }}>Tunjangan + Lembur</th>
-                <th style={{ padding: '12px 14px', textAlign: 'right' }}>Potongan (Kasbon)</th>
+                <th style={{ padding: '12px 14px', textAlign: 'right' }}>Tunjangan + Bonus</th>
+                <th style={{ padding: '12px 14px', textAlign: 'right' }}>Kasbon Singkat</th>
+                <th style={{ padding: '12px 14px', textAlign: 'right' }}>Cicilan Berjangka</th>
                 <th style={{ padding: '12px 14px', textAlign: 'right' }}>Gaji Bersih (Net)</th>
                 <th style={{ padding: '12px 14px', textAlign: 'center' }}>Slip Gaji</th>
               </tr>
@@ -273,7 +344,7 @@ export default function PayrollView({ currentUser }) {
             <tbody>
               {visibleData.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     Belum ada data slip gaji yang tercatat di database.
                     {isOwner && (
                       <div style={{ marginTop: '10px' }}>
@@ -291,7 +362,8 @@ export default function PayrollView({ currentUser }) {
                   const pos = item.position || item.role;
                   const basic = item.basic_salary ?? item.basic;
                   const allow = (item.allowances ?? item.allowance ?? 0) + (item.overtime_pay ?? item.overtime ?? 0) + (item.bonus ?? 0);
-                  const cuts = (item.kasbon_deduction ?? item.kasbon ?? 0) + (item.absence_deduction ?? item.absenceDeduction ?? 0);
+                  const kasbonCut = Number(item.kasbon_deduction ?? item.kasbon ?? 0);
+                  const loanCut = Number(item.loan_deduction ?? 0);
 
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
@@ -308,8 +380,18 @@ export default function PayrollView({ currentUser }) {
                       <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>
                         +{formatIDR(allow)}
                       </td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>
-                        -{formatIDR(cuts)}
+                      <td style={{ padding: '12px 14px', textAlign: 'right', color: kasbonCut > 0 ? '#dc2626' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        {kasbonCut > 0 ? `-${formatIDR(kasbonCut)}` : '-'}
+                      </td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right', color: loanCut > 0 ? '#4f46e5' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        {loanCut > 0 ? (
+                          <div>
+                            <span style={{ fontWeight: 700 }}>-{formatIDR(loanCut)}</span>
+                            {item.loan_installment_info && (
+                              <div style={{ fontSize: '0.68rem', color: '#6366f1' }}>{item.loan_installment_info}</div>
+                            )}
+                          </div>
+                        ) : '-'}
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 800, color: 'var(--gold-light)', fontFamily: 'var(--font-mono)', fontSize: '0.95rem' }}>
                         {formatIDR(net)}
@@ -472,97 +554,145 @@ export default function PayrollView({ currentUser }) {
                 </div>
               </div>
 
-              {/* Section 2: Deductions / Potongan */}
-              <div style={{ background: 'var(--bg-input)', padding: '12px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Section 2: Deductions / Potongan (Kasbon Singkat & Cicilan Berjangka Dipisah) */}
+              <div style={{ background: 'var(--bg-input)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
-                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                     2. Rincian Potongan (Deductions)
                   </span>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Nominal (Rp)</span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div className="form-group">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <label className="form-label" style={{ margin: 0 }}><span>Potongan Kasbon:</span></label>
-                      {activeStaffLoanInfo.balance > 0 && (
-                        activeStaffLoanInfo.activeLoan ? (
-                          <button
-                            type="button"
-                            onClick={() => setFormKasbon(String(activeStaffLoanInfo.suggestedAmount))}
-                            style={{
-                              background: 'rgba(79, 70, 229, 0.12)',
-                              border: '1px solid rgba(79, 70, 229, 0.35)',
-                              color: '#4f46e5',
-                              borderRadius: '6px',
-                              padding: '2px 6px',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                            title='Klik untuk isi cicilan rutin bulan ini'
-                          >
-                            Cicilan ke-{activeStaffLoanInfo.nextIndex}/{activeStaffLoanInfo.activeLoan.tenor_months}: {formatIDR(activeStaffLoanInfo.suggestedAmount)}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setFormKasbon(String(activeStaffLoanInfo.balance))}
-                            style={{
-                              background: 'rgba(239, 68, 68, 0.12)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              color: '#dc2626',
-                              borderRadius: '6px',
-                              padding: '2px 6px',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                            title='Klik untuk potong seluruh sisa kasbon'
-                          >
-                            Sisa: {formatIDR(activeStaffLoanInfo.balance)} (Lunasi)
-                          </button>
-                        )
+                {/* Potongan 2a: Kasbon Singkat */}
+                <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.18)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#dc2626' }}>2a. Kasbon Singkat:</span>
+                      {activeStaffLoanInfo.kasbonBalance > 0 && (
+                        <span style={{ fontSize: '0.7rem', color: '#b91c1c', background: '#fee2e2', padding: '1px 6px', borderRadius: '6px', fontWeight: 600 }}>
+                          Sisa: {formatIDR(activeStaffLoanInfo.kasbonBalance)}
+                        </span>
                       )}
                     </div>
-                    <input type="number" placeholder="0" value={formKasbon} onChange={(e) => setFormKasbon(e.target.value)} className="form-input" />
+                    {activeStaffLoanInfo.kasbonBalance > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormKasbon(String(activeStaffLoanInfo.kasbonBalance))}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          color: '#dc2626',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                        title='Klik untuk potong seluruh kasbon singkat'
+                      >
+                        Potong Seluruhnya ({formatIDR(activeStaffLoanInfo.kasbonBalance)})
+                      </button>
+                    )}
                   </div>
-                  <div className="form-group">
-                    <label className="form-label"><span>Potongan Absen:</span></label>
-                    <input type="number" placeholder="0" value={formAbsence} onChange={(e) => setFormAbsence(e.target.value)} className="form-input" />
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    value={formKasbon} 
+                    onChange={(e) => setFormKasbon(e.target.value)} 
+                    className="form-input" 
+                    style={{ height: '38px', margin: 0 }} 
+                  />
+                </div>
+
+                {/* Potongan 2b: Cicilan Pinjaman Berjangka */}
+                <div style={{ background: 'rgba(79, 70, 229, 0.05)', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(79, 70, 229, 0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4f46e5' }}>2b. Cicilan Pinjaman Berjangka:</span>
+                      {activeStaffLoanInfo.activeLoan && (
+                        <span style={{ fontSize: '0.7rem', color: '#4338ca', background: '#e0e7ff', padding: '1px 6px', borderRadius: '6px', fontWeight: 600 }}>
+                          Cicilan ke-{activeStaffLoanInfo.nextIndex}/{activeStaffLoanInfo.activeLoan.tenor_months} bln
+                        </span>
+                      )}
+                    </div>
+                    {activeStaffLoanInfo.activeLoan && activeStaffLoanInfo.suggestedLoanMonthly > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormLoan(String(activeStaffLoanInfo.suggestedLoanMonthly))}
+                        style={{
+                          background: 'rgba(79, 70, 229, 0.12)',
+                          border: '1px solid rgba(79, 70, 229, 0.35)',
+                          color: '#4f46e5',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                        title='Klik untuk isi nominal cicilan bulanan'
+                      >
+                        Terapkan Cicilan ({formatIDR(activeStaffLoanInfo.suggestedLoanMonthly)})
+                      </button>
+                    )}
                   </div>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    value={formLoan} 
+                    onChange={(e) => setFormLoan(e.target.value)} 
+                    className="form-input" 
+                    style={{ height: '38px', margin: 0 }} 
+                  />
+                  {activeStaffLoanInfo.activeLoan && (
+                    <div style={{ fontSize: '0.72rem', color: '#6366f1', marginTop: '4px' }}>
+                      Total pinjaman: {formatIDR(activeStaffLoanInfo.activeLoan.amount)} • Sisa hutang: {formatIDR(activeStaffLoanInfo.loanBalance)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Potongan 2c: Potongan Absen */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ marginBottom: '3px' }}>2c. Potongan Keterlambatan / Absensi:</label>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    value={formAbsence} 
+                    onChange={(e) => setFormAbsence(e.target.value)} 
+                    className="form-input" 
+                    style={{ height: '38px' }} 
+                  />
                 </div>
               </div>
 
               {/* Live Realtime Summary Calculation Preview */}
               {(() => {
                 const estGross = (Number(formBasic) || 0) + (Number(formAllowance) || 0) + (Number(formOvertime) || 0) + (Number(formBonus) || 0);
-                const estDeductions = (Number(formKasbon) || 0) + (Number(formAbsence) || 0);
+                const estDeductions = (Number(formKasbon) || 0) + (Number(formLoan) || 0) + (Number(formAbsence) || 0);
                 const estNet = Math.max(0, estGross - estDeductions);
                 return (
                   <div style={{
                     background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(250, 247, 242, 0.95) 100%)',
                     border: '1px solid rgba(79, 70, 229, 0.22)',
-                    borderRadius: 'var(--radius-md)',
+                    borderRadius: '12px',
                     padding: '12px 14px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '6px'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 600 }}>
-                        <Calculator size={14} color="var(--burgundy-primary)" />
+                        <Calculator size={14} color="#4F46E5" />
                         Kalkulasi Otomatis:
                       </span>
                       <span>
-                        Bruto: <strong>{formatIDR(estGross)}</strong> • Potongan: <strong style={{ color: estDeductions > 0 ? 'var(--danger)' : 'inherit' }}>-{formatIDR(estDeductions)}</strong>
+                        Bruto: <strong>{formatIDR(estGross)}</strong> • Total Potongan: <strong style={{ color: estDeductions > 0 ? '#dc2626' : 'inherit' }}>-{formatIDR(estDeductions)}</strong>
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(79, 70, 229, 0.18)', paddingTop: '6px' }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--burgundy-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed rgba(79, 70, 229, 0.2)', paddingTop: '6px' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Take Home Pay (Gaji Bersih):
                       </span>
-                      <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--burgundy-primary)', fontFamily: 'var(--font-mono)' }}>
+                      <strong style={{ fontSize: '1.25rem', fontWeight: 900, color: '#4F46E5', fontFamily: 'var(--font-mono)' }}>
                         {formatIDR(estNet)}
                       </strong>
                     </div>
@@ -571,10 +701,10 @@ export default function PayrollView({ currentUser }) {
               })()}
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.86rem' }}>
+                <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary" style={{ flex: 1, fontSize: '0.86rem', height: '42px' }}>
                   Batal
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 2, fontSize: '0.86rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '11px' }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2, fontSize: '0.86rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '42px' }}>
                   <CheckCircle2 size={16} />
                   <span>Simpan Slip Gaji</span>
                 </button>
@@ -594,8 +724,9 @@ export default function PayrollView({ currentUser }) {
         const grossEarnings = basic + allow + ot + bon;
 
         const kas = Number(selectedPayslip.kasbon_deduction ?? selectedPayslip.kasbon ?? 0);
+        const loan = Number(selectedPayslip.loan_deduction ?? 0);
         const abs = Number(selectedPayslip.absence_deduction ?? selectedPayslip.absenceDeduction ?? 0);
-        const totalDeductions = kas + abs;
+        const totalDeductions = kas + loan + abs;
 
         const net = Math.max(0, grossEarnings - totalDeductions);
         const slipNo = `SLIP/${selectedPayslip.period_month ? selectedPayslip.period_month.replace(/\s+/g, '-').toUpperCase() : '2026'}/${(selectedPayslip.id || '001').slice(0, 6).toUpperCase()}`;
@@ -739,14 +870,28 @@ export default function PayrollView({ currentUser }) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.86rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
-                    <span style={{ color: '#555' }}>1. Potongan Kasbon / Pinjaman Kru:</span>
+                    <span style={{ color: '#555' }}>1. Potongan Kasbon Singkat:</span>
                     <span style={{ fontFamily: 'var(--font-mono)', color: kas > 0 ? '#c53030' : '#777' }}>
                       {kas > 0 ? `-${formatIDR(kas)}` : 'Rp 0'}
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
-                    <span style={{ color: '#555' }}>2. Potongan Keterlambatan / Absensi:</span>
+                    <div>
+                      <span style={{ color: '#555' }}>2. Cicilan Pinjaman Berjangka:</span>
+                      {selectedPayslip.loan_installment_info && (
+                        <span style={{ fontSize: '0.72rem', color: '#4f46e5', marginLeft: '6px', fontWeight: 600 }}>
+                          ({selectedPayslip.loan_installment_info})
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: loan > 0 ? '#4f46e5' : '#777' }}>
+                      {loan > 0 ? `-${formatIDR(loan)}` : 'Rp 0'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0' }}>
+                    <span style={{ color: '#555' }}>3. Potongan Keterlambatan / Absensi:</span>
                     <span style={{ fontFamily: 'var(--font-mono)', color: abs > 0 ? '#c53030' : '#777' }}>
                       {abs > 0 ? `-${formatIDR(abs)}` : 'Rp 0'}
                     </span>

@@ -113,11 +113,17 @@ CREATE TABLE IF NOT EXISTS payroll_records (
     overtime_pay NUMERIC(12, 2) NOT NULL DEFAULT 0,
     bonus NUMERIC(12, 2) NOT NULL DEFAULT 0,
     kasbon_deduction NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    loan_deduction NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    loan_installment_info TEXT,
     absence_deduction NUMERIC(12, 2) NOT NULL DEFAULT 0,
     net_salary NUMERIC(12, 2) NOT NULL DEFAULT 0,
     status VARCHAR(20) DEFAULT 'Paid', -- 'Pending', 'Paid'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migrasi jika kolom potongan cicilan berjangka belum ada di tabel payroll_records:
+ALTER TABLE payroll_records ADD COLUMN IF NOT EXISTS loan_deduction NUMERIC(12, 2) DEFAULT 0;
+ALTER TABLE payroll_records ADD COLUMN IF NOT EXISTS loan_installment_info TEXT;
 
 -- ==============================================================================
 -- KEAMANAN ROW LEVEL SECURITY (RLS) & POLICIES (IDEMPOTENT)
@@ -172,7 +178,7 @@ CREATE TABLE IF NOT EXISTS cafe_targets (
     daily_target NUMERIC(12, 2) DEFAULT 1500000,
     shift_pagi_target NUMERIC(12, 2) DEFAULT 700000,
     shift_sore_target NUMERIC(12, 2) DEFAULT 800000,
-    notes TEXT DEFAULT 'Goals bersama seluruh kru DoubleDrip. Tembus target bulanan = bonus 1% omset untuk setiap kru!',
+    notes TEXT DEFAULT 'Goals bersama seluruh kru Bara Coffee. Tembus target bulanan = bonus 1% omset untuk setiap kru!',
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -186,7 +192,7 @@ CREATE POLICY "Allow anon all cafe_targets" ON cafe_targets FOR ALL USING (true)
 
 -- Seed konfigurasi default
 INSERT INTO cafe_targets (id, monthly_target, bonus_percent_per_staff, daily_target, notes)
-VALUES ('current_target', 45000000, 1.0, 1500000, 'Goals bersama seluruh kru DoubleDrip. Tembus target bulanan = bonus 1% omset untuk setiap kru!')
+VALUES ('current_target', 45000000, 1.0, 1500000, 'Goals bersama seluruh kru Bara Coffee. Tembus target bulanan = bonus 1% omset untuk setiap kru!')
 ON CONFLICT (id) DO UPDATE SET 
     monthly_target = EXCLUDED.monthly_target,
     bonus_percent_per_staff = EXCLUDED.bonus_percent_per_staff;
@@ -344,13 +350,23 @@ CREATE TABLE IF NOT EXISTS staff_kasbon (
     staff_name VARCHAR(100) NOT NULL,
     staff_id VARCHAR(50),
     outlet VARCHAR(50) DEFAULT 'kedai', -- 'kedai' atau 'gerobak'
-    type VARCHAR(20) NOT NULL DEFAULT 'kasbon', -- 'kasbon' (pinjam) atau 'cicilan' (bayar/potong)
+    type VARCHAR(20) NOT NULL DEFAULT 'kasbon', -- 'kasbon' (pinjam), 'pinjaman' (cicilan berjangka), atau 'cicilan' (bayar/potong)
+    tenor_months INTEGER DEFAULT 1,
+    installment_index INTEGER,
+    total_installments INTEGER,
+    monthly_installment NUMERIC(12, 2),
     amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
     notes TEXT,
     approved_by VARCHAR(100) DEFAULT 'Owner',
     status VARCHAR(20) DEFAULT 'aktif', -- 'aktif', 'lunas', 'dipotong_gaji'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migrasi jika kolom berjangka belum ada pada tabel lama:
+ALTER TABLE staff_kasbon ADD COLUMN IF NOT EXISTS tenor_months INTEGER DEFAULT 1;
+ALTER TABLE staff_kasbon ADD COLUMN IF NOT EXISTS installment_index INTEGER;
+ALTER TABLE staff_kasbon ADD COLUMN IF NOT EXISTS total_installments INTEGER;
+ALTER TABLE staff_kasbon ADD COLUMN IF NOT EXISTS monthly_installment NUMERIC(12, 2);
 
 ALTER TABLE staff_kasbon ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow anon all staff_kasbon" ON staff_kasbon;

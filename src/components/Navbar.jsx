@@ -134,17 +134,17 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
               <div className="brand-logo-wrapper">
                 <img 
                   src="/logo.svg" 
-                  alt="DoubleDrip Bake & Brew Logo" 
+                  alt="Bara Coffee Logo" 
                   className="brand-logo-img"
                 />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <h1 style={{ fontSize: '1.12rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
-                    DOUBLEDRIP
+                    BARA COFFEE
                   </h1>
                   <span className="brand-badge">
-                    Bake & Brew
+                    Kedai & Gerobak
                   </span>
                 </div>
                 <p className="brand-subtitle">
@@ -296,7 +296,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                   marginBottom: '14px'
                 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-                  <span>Sesi Login Aktif • DoubleDrip</span>
+                  <span>Sesi Login Aktif • Bara Coffee</span>
                 </div>
 
                 {/* Divider Line */}
@@ -432,10 +432,10 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
               />
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  DOUBLEDRIP
+                  BARA COFFEE
                 </h3>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Navigasi Utama Cafe
+                  Navigasi Utama Kedai & Gerobak
                 </span>
               </div>
             </div>

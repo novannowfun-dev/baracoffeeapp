@@ -26,7 +26,7 @@ export function formatDateID(dateStr) {
 }
 
 /**
- * Return badge class untuk 4 tipe shift Doubledrip
+ * Return badge class untuk tipe shift Bara Coffee
  */
 export function getShiftBadge(shift) {
   switch (shift) {

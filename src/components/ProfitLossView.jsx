@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -26,7 +27,10 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
-  Filter
+  Filter,
+  X,
+  CreditCard,
+  Store
 } from 'lucide-react';
 import { formatIDR, formatDateID } from '../lib/formatters';
 import { ROLES } from '../lib/auth';
@@ -62,6 +66,7 @@ export default function ProfitLossView({ currentUser, onRequirePin }) {
   // Form modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [formData, setFormData] = useState({
     expense_date: new Date().toISOString().split('T')[0],
     title: '',
@@ -343,12 +348,12 @@ export default function ProfitLossView({ currentUser, onRequirePin }) {
         {/* Action Button: Tambah Belanjaan Owner */}
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
-            onClick={() => window.print()}
+            onClick={() => setShowPrintModal(true)}
             className="btn btn-outline no-print"
             style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}
           >
             <Printer size={16} />
-            <span>Cetak PDF</span>
+            <span>Cetak PDF Laporan</span>
           </button>
           
           <button
@@ -936,90 +941,186 @@ export default function ProfitLossView({ currentUser, onRequirePin }) {
         </div>
       )}
 
-      {/* MODAL INPUT / EDIT BELANJAAN OWNER */}
-      {isModalOpen && (
+      {/* MODAL INPUT / EDIT BELANJAAN OWNER (VIA CREATEPORTAL) */}
+      {isModalOpen && createPortal(
         <div style={{
           position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
-          padding: '16px'
+          zIndex: 99999,
+          padding: '16px',
+          overflowY: 'auto',
+          boxSizing: 'border-box'
         }}>
           <div className="glass-card animate-fade-in" style={{
             background: 'var(--bg-card)',
-            borderRadius: '20px',
+            borderRadius: '22px',
             width: '100%',
-            maxWidth: '540px',
-            padding: '28px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-            border: '1px solid var(--border-hover)'
+            maxWidth: '560px',
+            margin: 'auto',
+            maxHeight: 'min(92vh, calc(100vh - 32px))',
+            overflowY: 'auto',
+            padding: '26px 28px',
+            boxShadow: '0 25px 70px rgba(0, 0, 0, 0.3)',
+            border: '1px solid var(--border-hover)',
+            boxSizing: 'border-box',
+            position: 'relative'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {editingExpense ? 'Edit Catatan Belanjaan' : 'Catat Belanjaan Owner'}
-                </h3>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Otomatis masuk ke kalkulasi COGS / Beban Laba Rugi
-                </span>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 6px 16px rgba(217, 119, 6, 0.28)'
+                }}>
+                  <ShoppingBag size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                    {editingExpense ? 'Edit Catatan Belanjaan Owner' : 'Catat Belanjaan Owner'}
+                  </h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Pengeluaran mandiri owner untuk Bahan Baku (COGS) & Operasional
+                  </span>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                style={{ background: 'transparent', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}
+                className="btn btn-ghost"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '6px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Tutup Form"
               >
-                &times;
+                <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSaveExpense} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Tanggal Belanja *</label>
+              {/* Row 1: Tanggal & Nominal Biaya */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '12px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Calendar size={13} color="var(--burgundy-primary)" />
+                    <span>Tanggal Belanja *</span>
+                  </label>
                   <input
                     type="date"
                     required
                     value={formData.expense_date}
                     onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
-                    className="form-control"
+                    className="form-input"
+                    style={{ height: '40px', fontSize: '0.86rem' }}
                   />
                 </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Nominal Biaya (Rp) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    placeholder="Contoh: 1500000"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="form-control"
-                  />
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <DollarSign size={13} color="var(--burgundy-primary)" />
+                    <span>Nominal Biaya (Rp) *</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="500"
+                      placeholder="Contoh: 1500000"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      className="form-input"
+                      style={{ height: '40px', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Nama Belanjaan / Item *</label>
+              {/* Quick Amount Suggestion Chips */}
+              {Number(formData.amount) > 0 && (
+                <div style={{
+                  background: 'rgba(217, 119, 6, 0.08)',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(217, 119, 6, 0.2)',
+                  fontSize: '0.78rem',
+                  color: '#B45309',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>Terbilang Format:</span>
+                  <strong style={{ fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}>{formatIDR(Number(formData.amount))}</strong>
+                </div>
+              )}
+
+              {/* Row 2: Nama Item Belanjaan */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Tag size={13} color="var(--burgundy-primary)" />
+                  <span>Nama Belanjaan / Item *</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Misal: Beli Susu Greenfields 2 Karton + Syrup Monin"
+                  placeholder="Misal: Susu Fresh Milk Greenfields 3 Karton + Syrup Vanilla"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="form-control"
+                  className="form-input"
+                  style={{ height: '40px', fontSize: '0.88rem' }}
                 />
               </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Kategori Pos Pengeluaran *</label>
+              {/* Row 3: Kategori Pos Pengeluaran */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Box size={13} color="var(--burgundy-primary)" />
+                    <span>Kategori Pos Pengeluaran *</span>
+                  </label>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    background: formData.category_type === 'cogs' ? '#FEF3C7' : '#EEF2FF',
+                    color: formData.category_type === 'cogs' ? '#B45309' : '#4338CA',
+                    border: formData.category_type === 'cogs' ? '1px solid #FDE68A' : '1px solid #C7D2FE'
+                  }}>
+                    {formData.category_type === 'cogs' ? '📦 TIPE HPP / COGS' : '⚡ TIPE BIAYA OPERASIONAL'}
+                  </span>
+                </div>
                 <select
                   value={formData.category}
                   onChange={handleCategoryChange}
-                  className="form-control"
+                  className="form-select"
+                  style={{ height: '42px', fontSize: '0.86rem', width: '100%' }}
                 >
                   {EXPENSE_CATEGORIES.map(cat => (
                     <option key={cat.id} value={cat.id}>
@@ -1027,54 +1128,84 @@ export default function ProfitLossView({ currentUser, onRequirePin }) {
                     </option>
                   ))}
                 </select>
-                <span style={{ fontSize: '0.74rem', color: formData.category_type === 'cogs' ? '#b45309' : 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                  {formData.category_type === 'cogs' 
-                    ? '📦 Terhitung sebagai HPP (Beban Pokok Penjualan) mengurangi Laba Kotor' 
-                    : '⚡ Terhitung sebagai Beban Operasional (OPEX) mengurangi Laba Bersih'}
-                </span>
+                <div style={{
+                  fontSize: '0.74rem',
+                  color: formData.category_type === 'cogs' ? '#92400e' : '#475569',
+                  background: 'var(--bg-input)',
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  marginTop: '6px',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <Info size={13} style={{ flexShrink: 0 }} />
+                  <span>
+                    {formData.category_type === 'cogs' 
+                      ? 'Dihitung sebagai HPP (Beban Pokok Penjualan) & mengurangi Laba Kotor bisnis.' 
+                      : 'Dihitung sebagai Beban Operasional (OPEX) & mengurangi Laba Bersih akhir.'}
+                  </span>
+                </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Kanal Pembayaran</label>
+              {/* Row 4: Kanal Pembayaran & Toko / Vendor */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <CreditCard size={13} color="var(--burgundy-primary)" />
+                    <span>Kanal Pembayaran</span>
+                  </label>
                   <select
                     value={formData.payment_method}
                     onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                    className="form-control"
+                    className="form-select"
+                    style={{ height: '40px', fontSize: '0.86rem', width: '100%' }}
                   >
                     {PAYMENT_METHODS.map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Nama Toko / Vendor</label>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Store size={13} color="var(--burgundy-primary)" />
+                    <span>Toko / Vendor (Opsional)</span>
+                  </label>
                   <input
                     type="text"
-                    placeholder="Misal: Toko Bahan Kue Maju"
+                    placeholder="Contoh: Toko Bahan Roti Maju"
                     value={formData.vendor}
                     onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                    className="form-control"
+                    className="form-input"
+                    style={{ height: '40px', fontSize: '0.86rem' }}
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 700 }}>Catatan Tambahan (Opsional)</label>
+              {/* Row 5: Catatan Tambahan */}
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '5px' }}>
+                  Catatan Tambahan (Opsional)
+                </label>
                 <textarea
                   rows="2"
-                  placeholder="Keterangan nomor nota, kuantiti barang, dsb"
+                  placeholder="Keterangan nomor nota bon fisik, kuantiti barang, spesifikasi merk, dsb."
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="form-control"
+                  className="form-input"
+                  style={{ fontSize: '0.84rem', resize: 'vertical' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)' }}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="btn btn-outline"
+                  className="btn btn-secondary"
+                  style={{ height: '42px', padding: '0 20px', fontSize: '0.88rem' }}
                 >
                   Batal
                 </button>
@@ -1082,15 +1213,319 @@ export default function ProfitLossView({ currentUser, onRequirePin }) {
                   type="submit"
                   disabled={formSubmitting}
                   className="btn btn-primary"
-                  style={{ minWidth: '130px' }}
+                  style={{ minWidth: '160px', height: '42px', padding: '0 20px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
-                  {formSubmitting ? 'Menyimpan...' : (editingExpense ? 'Simpan Perubahan' : 'Catat Belanjaan')}
+                  <CheckCircle2 size={16} />
+                  <span>{formSubmitting ? 'Menyimpan...' : (editingExpense ? 'Simpan Perubahan' : 'Simpan Belanjaan')}</span>
                 </button>
               </div>
 
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* MODAL PRINT PREVIEW LAPORAN LABA RUGI (PROFIT & LOSS) RESMI */}
+      {showPrintModal && createPortal(
+        <div className="print-modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '16px',
+          overflowY: 'auto',
+          boxSizing: 'border-box'
+        }}>
+          <div className="printable-document animate-fade-in" style={{
+            maxWidth: '780px',
+            width: '100%',
+            margin: 'auto',
+            maxHeight: 'min(94vh, calc(100vh - 32px))',
+            overflowY: 'auto',
+            boxSizing: 'border-box',
+            background: '#ffffff',
+            color: '#111827',
+            padding: '36px 40px',
+            borderRadius: '16px',
+            boxShadow: '0 25px 70px rgba(0, 0, 0, 0.35)',
+            fontFamily: 'var(--font-sans)',
+            position: 'relative'
+          }}>
+            {/* Top Toolbar (Hidden on Print) */}
+            <div className="no-print" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid #e5e7eb',
+              paddingBottom: '16px',
+              marginBottom: '20px'
+            }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#111827' }}>
+                  Pratinjau Cetak: Laporan Laba Rugi (P&L)
+                </h4>
+                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                  Dokumen terformat bersih khusus cetak A4 / simpan ke PDF
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    fontSize: '0.86rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <Printer size={16} />
+                  <span>Cetak / Simpan PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(false)}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: '8px 12px',
+                    fontSize: '0.86rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Tutup Pratinjau"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Official Report Header */}
+            <div style={{ textAlign: 'center', borderBottom: '3px double #1e293b', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Coffee size={24} color="#4F46E5" />
+                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#1e293b' }}>
+                  KEDAI KOPI BARA
+                </h2>
+              </div>
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#4b5563', fontWeight: 600, letterSpacing: '0.04em' }}>
+                ARTISAN BAKERY • SPECIALTY COFFEE • ROASTERY
+              </p>
+              <div style={{ marginTop: '10px', display: 'inline-block', background: '#f8fafc', padding: '5px 16px', borderRadius: '20px', border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  LAPORAN LABA RUGI RESMI (PROFIT & LOSS STATEMENT)
+                </span>
+              </div>
+            </div>
+
+            {/* Metadata Box */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '22px',
+              fontSize: '0.84rem'
+            }}>
+              <div>
+                <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>Periode Laporan:</span>
+                <strong style={{ color: '#0f172a' }}>
+                  {startDate && endDate ? `${formatDateID(startDate)} s/d ${formatDateID(endDate)}` : 'Semua Periode'}
+                </strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>Tanggal Cetak Dokumen:</span>
+                <strong style={{ color: '#0f172a' }}>{formatDateID(new Date().toISOString().split('T')[0])}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block' }}>Jumlah Data:</span>
+                <span style={{ color: '#334155' }}>
+                  {pnlReport.period.transactionCount} Sesi Kasir • {pnlReport.period.expenseCount} Belanjaan
+                </span>
+              </div>
+            </div>
+
+            {/* P&L Statement Structure */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '0.88rem' }}>
+              
+              {/* 1. REVENUE */}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b', borderBottom: '2px solid #1e293b', paddingBottom: '4px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>1. PENDAPATAN USAHA (REVENUE)</span>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>JUMLAH (RP)</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Penjualan Kotor (Gross Sales):</span>
+                    <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.revenue.grossSales)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#64748b' }}>Potongan Diskon & Promo:</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: pnlReport.revenue.discounts > 0 ? '#dc2626' : '#64748b' }}>
+                      -{formatIDR(pnlReport.revenue.discounts)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', fontWeight: 800, color: '#0f172a' }}>
+                    <span>Total Pendapatan Bersih (Net Sales):</span>
+                    <strong style={{ fontFamily: 'var(--font-mono)', color: '#047857', fontSize: '0.95rem' }}>{formatIDR(pnlReport.revenue.netSales)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. COGS (HPP) */}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#b45309', borderBottom: '2px solid #b45309', paddingBottom: '4px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>2. BEBAN POKOK PENJUALAN (COGS / HPP)</span>
+                  <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>JUMLAH (RP)</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Bahan Baku & Dapur (Kopi, Susu, Sirup, Butter, dll):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.cogs.ingredients)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Packaging & Kemasan (Cup, Paperbag, Sedotan, Box):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.cogs.packaging)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', fontWeight: 800, color: '#b45309' }}>
+                    <span>Total Beban Pokok Penjualan (HPP):</span>
+                    <strong style={{ fontFamily: 'var(--font-mono)' }}>-{formatIDR(pnlReport.cogs.total)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* GROSS PROFIT HIGHLIGHT */}
+              <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>LABA KOTOR (GROSS PROFIT)</strong>
+                  <span style={{ fontSize: '0.76rem', color: '#64748b', marginLeft: '8px' }}>
+                    (Margin: {(pnlReport.grossProfit?.marginPercent || 0).toFixed(1)}%)
+                  </span>
+                </div>
+                <strong style={{ fontSize: '1.1rem', color: (pnlReport.grossProfit?.amount || 0) >= 0 ? '#047857' : '#dc2626', fontFamily: 'var(--font-mono)' }}>
+                  {formatIDR(pnlReport.grossProfit?.amount || 0)}
+                </strong>
+              </div>
+
+              {/* 3. OPERATING EXPENSES (OPEX) */}
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#4338ca', borderBottom: '2px solid #4338ca', paddingBottom: '4px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>3. BEBAN OPERASIONAL (OPERATING EXPENSES / OPEX)</span>
+                  <span style={{ fontSize: '0.8rem', color: '#4338ca', fontWeight: 600 }}>JUMLAH (RP)</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Beban Gaji & Upah Kru (Payroll):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.opex.payrollKru || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Kas Kecil Kasir (Petty Cash Operasional Harian):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.opex.pettyCashKasir || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Utilitas (Listrik PLN, Air PDAM, Gas, Wi-Fi):</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.opex.utilities || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Perawatan & Servis Mesin / Alat Bar:</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.opex.maintenance || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Marketing, Iklan & Promosi Toko:</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR(pnlReport.opex.marketing || 0)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                    <span style={{ color: '#334155' }}>Sewa Tempat, Kebersihan & Beban Lainnya:</span>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{formatIDR((pnlReport.opex.rent || 0) + (pnlReport.opex.supplies || 0) + (pnlReport.opex.other || 0))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', fontWeight: 800, color: '#4338ca' }}>
+                    <span>Total Beban Operasional (OPEX):</span>
+                    <strong style={{ fontFamily: 'var(--font-mono)' }}>-{formatIDR(pnlReport.opex.total || 0)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* NET PROFIT FINAL BANNER */}
+              <div style={{
+                background: (pnlReport.netProfit?.amount || 0) >= 0 ? '#ecfdf5' : '#fef2f2',
+                border: (pnlReport.netProfit?.amount || 0) >= 0 ? '2px solid #059669' : '2px solid #dc2626',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginTop: '10px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 800, color: (pnlReport.netProfit?.amount || 0) >= 0 ? '#065f46' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    LABA BERSIH RIIL (NET PROFIT / LOSS)
+                  </span>
+                  <div style={{ fontSize: '0.76rem', color: '#4b5563', marginTop: '2px' }}>
+                    Net Profit Margin: <strong>{(pnlReport.netProfit?.marginPercent || 0).toFixed(1)}%</strong>
+                  </div>
+                </div>
+                <strong style={{ fontSize: '1.45rem', fontWeight: 900, color: (pnlReport.netProfit?.amount || 0) >= 0 ? '#047857' : '#dc2626', fontFamily: 'var(--font-mono)' }}>
+                  {formatIDR(pnlReport.netProfit?.amount || 0)}
+                </strong>
+              </div>
+
+            </div>
+
+            {/* Official Report Footer */}
+            <div style={{ marginTop: '28px', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '0.76rem', color: '#64748b' }}>
+              <div>
+                <div>* Dokumen ini dibuat otomatis oleh Sistem Terpadu Bara Coffee Coffee & Eatery.</div>
+                <div>* Dihitung berdasarkan data closing kasir terverifikasi & buku belanjaan owner.</div>
+              </div>
+              <div style={{ textAlign: 'center', minWidth: '150px' }}>
+                <div style={{ marginBottom: '40px', fontWeight: 600 }}>Mengetahui & Menyetujui,</div>
+                <div style={{ borderTop: '1px solid #334155', paddingTop: '4px', fontWeight: 800, color: '#0f172a' }}>
+                  ( Owner Bara Coffee )
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Bottom Buttons (Hidden on Print) */}
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="btn btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '9px 20px', fontSize: '0.88rem' }}
+              >
+                <Printer size={16} />
+                <span>Cetak Dokumen Sekarang</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrintModal(false)}
+                className="btn btn-secondary"
+                style={{ padding: '9px 18px', fontSize: '0.88rem' }}
+              >
+                Tutup
+              </button>
+            </div>
+
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>

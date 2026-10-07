@@ -45,19 +45,64 @@ export async function addKasbonRecord(record) {
     created_at: new Date().toISOString()
   };
 
+  // 1. Simpan segera ke localStorage agar data pasti muncul di UI seketika
+  let cached = [];
+  try {
+    const raw = localStorage.getItem(LOCAL_KASBON_KEY);
+    cached = raw ? JSON.parse(raw) : [];
+  } catch {
+    cached = [];
+  }
+  const updated = [newRecord, ...cached.filter(r => r.id !== newRecord.id)];
+  localStorage.setItem(LOCAL_KASBON_KEY, JSON.stringify(updated));
+
+  let inSupabase = false;
+  let supabaseWarning = null;
+  let tableMissing = false;
+
+  // 2. Simpan ke Supabase jika terhubung
   if (supabase) {
     try {
-      await supabase.from('staff_kasbon').insert([newRecord]);
+      const { data, error } = await supabase.from('staff_kasbon').insert([newRecord]).select().single();
+      if (!error && data) {
+        inSupabase = true;
+      } else if (error) {
+        console.warn('Gagal menyimpan kasbon ke Supabase:', error);
+        tableMissing = error.code === '42P01' || error.message?.includes('does not exist');
+        
+        // Jika error karena kolom baru (misal tenor_months belum ada di database), coba insert tanpa kolom baru
+        if (error.code === '42703' || error.message?.includes('column')) {
+          console.log('Mencoba fallback insert kasbon versi kompatibel...');
+          const fallbackRecord = {
+            id: newRecord.id,
+            entry_date: newRecord.entry_date,
+            staff_name: newRecord.staff_name,
+            staff_id: newRecord.staff_id,
+            outlet: newRecord.outlet,
+            type: newRecord.type,
+            amount: newRecord.amount,
+            notes: (newRecord.notes ? newRecord.notes + ' ' : '') + `[Tenor: ${newRecord.tenor_months} bln]`,
+            approved_by: newRecord.approved_by,
+            status: newRecord.status,
+            created_at: newRecord.created_at
+          };
+          const fallbackRes = await supabase.from('staff_kasbon').insert([fallbackRecord]);
+          if (!fallbackRes.error) {
+            inSupabase = true;
+          } else {
+            supabaseWarning = fallbackRes.error.message;
+          }
+        } else {
+          supabaseWarning = error.message;
+        }
+      }
     } catch (e) {
-      console.error('Insert kasbon to Supabase failed:', e);
+      console.warn('Koneksi Supabase error saat simpan kasbon:', e);
+      supabaseWarning = e.message || 'Koneksi gagal';
     }
   }
 
-  const existing = await getKasbonList();
-  const updated = [newRecord, ...existing];
-  localStorage.setItem(LOCAL_KASBON_KEY, JSON.stringify(updated));
-
-  // GSheets Webhook Sync
+  // 3. GSheets Webhook Sync
   const webhookUrl = getSheetsWebhookUrl();
   if (webhookUrl) {
     try {
@@ -72,7 +117,12 @@ export async function addKasbonRecord(record) {
     } catch (e) {}
   }
 
-  return newRecord;
+  return {
+    ...newRecord,
+    inSupabase,
+    tableMissing,
+    supabaseWarning
+  };
 }
 
 export async function deleteKasbonRecord(recordId) {

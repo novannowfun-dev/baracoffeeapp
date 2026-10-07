@@ -52,7 +52,7 @@ export default function KasbonView({ currentUser, activeOutlet }) {
 
   const stats = useMemo(() => {
     const totalOutstanding = summaries.reduce((acc, s) => acc + (s.sisaHutang > 0 ? s.sisaHutang : 0), 0);
-    const totalPinjamanAll = records.filter(r => r.type === 'kasbon').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const totalPinjamanAll = records.filter(r => r.type === 'kasbon' || r.type === 'pinjaman').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     const totalCicilanAll = records.filter(r => r.type === 'cicilan').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     const totalKruBerhutang = summaries.filter(s => s.sisaHutang > 0).length;
     return { totalOutstanding, totalPinjamanAll, totalCicilanAll, totalKruBerhutang };
@@ -79,7 +79,7 @@ export default function KasbonView({ currentUser, activeOutlet }) {
   }, [records, searchTerm, outletFilter]);
 
   const handleDelete = async (recId, name, amt, type) => {
-    if (!confirm('Hapus transaksi ' + (type === 'kasbon' ? 'kasbon' : 'cicilan') + ' ' + formatRupiah(amt) + ' atas nama ' + name + '? Saldo hutang akan dihitung ulang.')) return;
+    if (!confirm('Hapus transaksi ' + (type === 'kasbon' ? 'kasbon' : type === 'pinjaman' ? 'pinjaman berjangka' : 'cicilan') + ' ' + formatRupiah(amt) + ' atas nama ' + name + '? Saldo hutang akan dihitung ulang.')) return;
     try {
       await deleteKasbonRecord(recId);
       await loadData();
@@ -113,19 +113,35 @@ export default function KasbonView({ currentUser, activeOutlet }) {
       const numAmt = Number(form.amount) || 0;
       const tenor = (form.type === 'pinjaman') ? (Number(form.tenor_months) || 12) : 1;
       const monthly = (form.type === 'pinjaman') ? Math.round(numAmt / tenor) : numAmt;
-      await addKasbonRecord({
+      const saved = await addKasbonRecord({
         ...form,
         amount: numAmt,
         tenor_months: tenor,
         monthly_installment: monthly,
         approved_by: currentUser?.name || 'Owner'
       });
-      setFeedback({ type: 'success', msg: `Berhasil mencatat transaksi kasbon untuk ${form.staff_name}` });
+
+      if (saved.tableMissing) {
+        setFeedback({ 
+          type: 'warning', 
+          msg: `Tersimpan di aplikasi! Namun tabel 'staff_kasbon' belum ada di Supabase. Jalankan query SQL di supabase_schema.sql.` 
+        });
+      } else if (saved.supabaseWarning) {
+        setFeedback({ 
+          type: 'warning', 
+          msg: `Tersimpan secara lokal. Catatan Supabase: ${saved.supabaseWarning}` 
+        });
+      } else {
+        const jenisTxt = form.type === 'pinjaman' ? 'Pinjaman Berjangka' : form.type === 'kasbon' ? 'Kasbon Singkat' : 'Cicilan';
+        setFeedback({ type: 'success', msg: `Berhasil mencatat ${jenisTxt} untuk ${form.staff_name}` });
+      }
+
       setShowModal(false);
       setForm({
         staff_name: '',
         outlet: activeOutlet || 'kedai',
         type: 'kasbon',
+        tenor_months: '12',
         amount: '',
         notes: '',
         entry_date: new Date().toISOString().split('T')[0]
@@ -375,12 +391,26 @@ export default function KasbonView({ currentUser, activeOutlet }) {
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '10px', fontSize: '0.74rem', fontWeight: 800, background: r.type === 'kasbon' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: r.type === 'kasbon' ? '#DC2626' : '#059669' }}>
-                          {r.type === 'kasbon' ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}
-                          {r.type === 'kasbon' ? 'PINJAM (KASBON)' : 'BAYAR (CICILAN)'}
+                        <span style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '4px', 
+                          padding: '3px 8px', 
+                          borderRadius: '10px', 
+                          fontSize: '0.74rem', 
+                          fontWeight: 800, 
+                          background: r.type === 'pinjaman' 
+                            ? 'rgba(79, 70, 229, 0.12)' 
+                            : (r.type === 'kasbon' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)'), 
+                          color: r.type === 'pinjaman' 
+                            ? '#4F46E5' 
+                            : (r.type === 'kasbon' ? '#DC2626' : '#059669') 
+                        }}>
+                          {r.type === 'cicilan' ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                          {r.type === 'pinjaman' ? `PINJAMAN (${r.tenor_months || 12} BLN)` : (r.type === 'kasbon' ? 'PINJAM (KASBON)' : 'BAYAR (CICILAN)')}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 14px', fontWeight: 800, color: r.type === 'kasbon' ? '#DC2626' : '#059669' }}>
+                      <td style={{ padding: '12px 14px', fontWeight: 800, color: (r.type === 'kasbon' || r.type === 'pinjaman') ? '#DC2626' : '#059669' }}>
                         {formatRupiah(r.amount)}
                       </td>
                       <td style={{ padding: '12px 14px', color: 'var(--text-secondary)' }}>{r.notes || '-'}</td>
