@@ -550,7 +550,7 @@ tr:hover td {
   /* 2. Sleek Mobile Bottom Navigation Dock (Bara Coffee Light Theme) */
   .navbar-mobile-dock {
     display: grid !important;
-    grid-template-columns: repeat(6, 1fr) !important;
+    grid-template-columns: repeat(7, 1fr) !important;
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -837,6 +837,31 @@ tr:hover td {
     box-sizing: border-box !important;
   }
 
+  /* 10. Grid Layouts & Cards on Mobile */
+  /* Force all auto-fit / auto-fill grids to single column on mobile */
+  [style*="gridTemplateColumns"],
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Specific exceptions: KPI grids that look great as 2-column on mobile */
+  .attendance-kpi-grid,
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))'"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr))"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+  .attendance-kpi-grid > .glass-card {
+    margin-bottom: 0 !important;
+    padding: 12px 10px !important;
+  }
+  .attendance-kpi-grid > .glass-card:last-child {
+    grid-column: span 2 !important;
+  }
+
   /* Shift Selection Cards (Side-by-side 2 columns on mobile) */
   .shift-selection-grid,
   [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'"],
@@ -850,21 +875,68 @@ tr:hover td {
     padding: 10px 12px !important;
   }
 
-  /* General multi-column cards full-width */
-  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))'"],
-  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))'"],
-  [style*="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))"],
-  [style*="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"] {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-
   /* Slip Appraisal Matriks: 4 columns collapse into 2x2 */
   .appraisal-kpi-matriks,
   [style*="gridTemplateColumns: 'repeat(4, 1fr)'"],
   [style*="grid-template-columns: repeat(4, 1fr)"] {
+    display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 6px !important;
+  }
+
+  /* Dashboard 4 KPI cards: 2x2 on mobile */
+  .dashboard-kpi-grid,
+  [style*="gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))'"],
+  [style*="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))"] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+  .dashboard-kpi-grid > .glass-card {
+    padding: 12px 12px !important;
+    margin-bottom: 0 !important;
+  }
+  .dashboard-kpi-grid h3 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Dashboard Goals Banner on Mobile */
+  .goals-card-header {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+  .goals-info-boxes {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .goals-info-boxes > div {
+    text-align: left !important;
+    padding: 8px 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Top View Headers on Mobile (Clean stack) */
+  .view-container > div:first-child,
+  .animate-fade-in > div:first-child {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .view-container > div:first-child > div:last-child,
+  .animate-fade-in > div:first-child > div:last-child {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .view-container > div:first-child > div:last-child > button,
+  .animate-fade-in > div:first-child > div:last-child > button {
+    flex: 1 1 auto !important;
   }
 
   /* Slip Employee Header 1.4fr 1fr stack */

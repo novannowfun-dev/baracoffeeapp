@@ -164,7 +164,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
               padding: '6px 14px',
               borderRadius: '20px',
               background: 'var(--burgundy-subtle)',
-              border: '1px solid rgba(139, 55, 62, 0.18)',
+              border: '1px solid rgba(79, 70, 229, 0.2)',
               fontSize: '0.82rem',
               fontWeight: 700,
               color: 'var(--burgundy-primary)'
@@ -198,13 +198,13 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                 borderRadius: '50%',
                 border: `2px solid ${isDropdownOpen ? 'var(--burgundy-primary)' : 'var(--border-hover)'}`,
                 background: isOwner 
-                  ? 'linear-gradient(135deg, #8B373E 0%, #682329 100%)' 
-                  : 'linear-gradient(135deg, #8B373E 0%, #A24850 100%)',
+                  ? 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)' 
+                  : 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
                 color: '#ffffff',
                 fontWeight: 800,
                 fontSize: '0.98rem',
                 cursor: 'pointer',
-                boxShadow: isDropdownOpen ? '0 0 0 3px rgba(139, 55, 62, 0.22)' : '0 2px 8px rgba(139, 55, 62, 0.16)',
+                boxShadow: isDropdownOpen ? '0 0 0 3px rgba(79, 70, 229, 0.25)' : '0 2px 8px rgba(79, 70, 229, 0.2)',
                 transition: 'all 0.2s ease',
                 padding: 0
               }}
@@ -241,7 +241,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                   border: '1px solid var(--border-hover)',
                   borderRadius: '16px',
                   zIndex: 200,
-                  boxShadow: '0 16px 45px rgba(139, 55, 62, 0.18)'
+                  boxShadow: '0 16px 45px rgba(79, 70, 229, 0.16)'
                 }}
               >
                 {/* Header Info Akun */}
@@ -251,8 +251,8 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                     height: '46px',
                     borderRadius: '50%',
                     background: isOwner 
-                      ? 'linear-gradient(135deg, #8B373E 0%, #682329 100%)' 
-                      : 'linear-gradient(135deg, #8B373E 0%, #A24850 100%)',
+                      ? 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)' 
+                      : 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -260,7 +260,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                     fontWeight: 900,
                     fontSize: '1.2rem',
                     flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(139, 55, 62, 0.25)'
+                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)'
                   }}>
                     {userInitial}
                   </div>
@@ -792,7 +792,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
         onClick={() => handleTabClick('kasirpro')}
         className={`mobile-dock-btn ${activeTab === 'kasirpro' ? 'active' : ''}`}
       >
-        <Receipt size={20} color={activeTab === 'kasirpro' ? '#4F46E5' : 'inherit'} />
+        <Receipt size={20} />
         <span>KasirPro</span>
       </button>
 
