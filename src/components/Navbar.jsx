@@ -276,7 +276,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                       {currentUser?.name || 'Kru Cafe'}
                     </div>
                     <div style={{ fontSize: '0.74rem', color: isOwner ? 'var(--burgundy-primary)' : 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>
-                      {isOwner ? '👑 Owner / Manajemen' : `☕ ${currentUser?.position || 'Kru Shift'}`}
+                      {isOwner ? 'Owner / Manajemen' : (currentUser?.position || 'Kru Shift')}
                     </div>
                   </div>
                 </div>
@@ -738,7 +738,7 @@ export default function Navbar({ activeTab, setActiveTab, currentUser, onRequire
                   {currentUser?.name || 'Kru'}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {isOwner ? '👑 Owner / Manager' : `☕ ${currentUser?.position || 'Kru'}`}
+                  {isOwner ? 'Owner / Manager' : (currentUser?.position || 'Kru')}
                 </div>
               </div>
             </div>

@@ -294,30 +294,49 @@ export default function AuthScreen({ onLoginSuccess, timeoutNotification, onClea
               </div>
             )}
 
-            {/* Nama Staf */}
+            {/* Nama Staf Dropdown */}
             <div className="form-group">
               <label className="form-label">
-                <span>Pilih Akun Staf / Masukkan Nama:</span>
+                <span>Pilih Akun Pengguna:</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {staffList.length} Akun Terdaftar
+                </span>
               </label>
               <div style={{ position: 'relative' }}>
-                <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input 
-                  type="text"
-                  list="login-staff-list"
-                  placeholder="Ketik nama atau pilih dari daftar..."
+                <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }} />
+                <select 
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
-                  className="form-input"
-                  style={{ paddingLeft: '38px' }}
+                  className="form-select"
+                  style={{ paddingLeft: '38px', fontWeight: 600 }}
                   required
-                />
-                <datalist id="login-staff-list">
-                  {staffList.map((u) => (
-                    <option key={u.id} value={u.name}>
-                      {u.role === ROLES.OWNER ? '👑 Owner' : `☕ ${u.position || 'Kru'}`}
-                    </option>
-                  ))}
-                </datalist>
+                >
+                  <option value="">-- Pilih Akun Anda --</option>
+                  {/* Group Owner / Manajemen */}
+                  {staffList.filter(u => u.role === ROLES.OWNER || u.role === ROLES.MANAGER).length > 0 && (
+                    <optgroup label="Owner & Manajemen">
+                      {staffList.filter(u => u.role === ROLES.OWNER || u.role === ROLES.MANAGER).map((u) => (
+                        <option key={u.id || u.name} value={u.name}>
+                          {u.name} ({u.role === ROLES.OWNER ? 'Owner' : 'Manager'})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {/* Group Kru / Tim Operasional */}
+                  {staffList.filter(u => u.role !== ROLES.OWNER && u.role !== ROLES.MANAGER).length > 0 && (
+                    <optgroup label="Tim Kru & Staf">
+                      {staffList.filter(u => u.role !== ROLES.OWNER && u.role !== ROLES.MANAGER).map((u) => (
+                        <option key={u.id || u.name} value={u.name}>
+                          {u.name} ({u.position || 'Kru'})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {/* Fallback jika list belum termuat */}
+                  {staffList.length === 0 && (
+                    <option value="Owner Bara Coffee">Owner Bara Coffee (Owner)</option>
+                  )}
+                </select>
               </div>
             </div>
 

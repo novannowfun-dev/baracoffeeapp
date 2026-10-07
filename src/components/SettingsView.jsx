@@ -727,7 +727,7 @@ export default function SettingsView({ onReloadData }) {
                         </td>
                         <td style={{ padding: '10px' }}>
                           <span className={`badge ${isOwnerRole ? 'badge-gold' : isManager ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.72rem' }}>
-                            {isOwnerRole ? '👑 Owner' : isManager ? '💼 Manager' : '☕ Kru / Kasir'}
+                            {isOwnerRole ? 'Owner' : isManager ? 'Manager' : 'Kru / Kasir'}
                           </span>
                         </td>
                         <td style={{ padding: '10px', textAlign: 'center' }}>

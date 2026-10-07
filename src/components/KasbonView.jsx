@@ -6,10 +6,13 @@ import {
   Trash2, X, Wallet, CheckCircle, AlertTriangle 
 } from 'lucide-react';
 import { getKasbonList, addKasbonRecord, deleteKasbonRecord, computeStaffKasbonSummary } from '../lib/kasbonService';
-import { getStaffList } from '../lib/auth';
+import { getStaffList, ROLES } from '../lib/auth';
 import { formatRupiah } from '../lib/formatters';
 
 export default function KasbonView({ currentUser, activeOutlet }) {
+  const isOwner = currentUser?.role === ROLES.OWNER || currentUser?.role === ROLES.MANAGER;
+  const currentUserName = currentUser?.name || '';
+
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,7 +25,7 @@ export default function KasbonView({ currentUser, activeOutlet }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   const [form, setForm] = useState({
-    staff_name: '',
+    staff_name: isOwner ? '' : currentUserName,
     outlet: activeOutlet || 'kedai',
     type: 'kasbon', // 'kasbon', 'pinjaman', or 'cicilan'
     tenor_months: '12',
@@ -48,15 +51,21 @@ export default function KasbonView({ currentUser, activeOutlet }) {
     loadData();
   }, []);
 
-  const summaries = useMemo(() => computeStaffKasbonSummary(records), [records]);
+  // Filter dasar: Jika Kru biasa, hanya bisa melihat transaksi atas namanya sendiri
+  const accessibleRecords = useMemo(() => {
+    if (isOwner) return records;
+    return records.filter(r => (r.staff_name || '').toLowerCase() === currentUserName.toLowerCase());
+  }, [records, isOwner, currentUserName]);
+
+  const summaries = useMemo(() => computeStaffKasbonSummary(accessibleRecords), [accessibleRecords]);
 
   const stats = useMemo(() => {
     const totalOutstanding = summaries.reduce((acc, s) => acc + (s.sisaHutang > 0 ? s.sisaHutang : 0), 0);
-    const totalPinjamanAll = records.filter(r => r.type === 'kasbon' || r.type === 'pinjaman').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
-    const totalCicilanAll = records.filter(r => r.type === 'cicilan').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const totalPinjamanAll = accessibleRecords.filter(r => r.type === 'kasbon' || r.type === 'pinjaman').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    const totalCicilanAll = accessibleRecords.filter(r => r.type === 'cicilan').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     const totalKruBerhutang = summaries.filter(s => s.sisaHutang > 0).length;
     return { totalOutstanding, totalPinjamanAll, totalCicilanAll, totalKruBerhutang };
-  }, [summaries, records]);
+  }, [summaries, accessibleRecords]);
 
   const filteredSummaries = useMemo(() => {
     return summaries.filter(s => {
@@ -67,7 +76,7 @@ export default function KasbonView({ currentUser, activeOutlet }) {
   }, [summaries, searchTerm, statusFilter]);
 
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
+    return accessibleRecords.filter(r => {
       const searchLower = searchTerm.toLowerCase();
       const matchSearch = !searchTerm || 
         r.staff_name.toLowerCase().includes(searchLower) ||
@@ -76,7 +85,7 @@ export default function KasbonView({ currentUser, activeOutlet }) {
       const matchOutlet = outletFilter === 'ALL' || (outletFilter === 'gerobak' ? isGerobak : !isGerobak);
       return matchSearch && matchOutlet;
     });
-  }, [records, searchTerm, outletFilter]);
+  }, [accessibleRecords, searchTerm, outletFilter]);
 
   const handleDelete = async (recId, name, amt, type) => {
     if (!confirm('Hapus transaksi ' + (type === 'kasbon' ? 'kasbon' : type === 'pinjaman' ? 'pinjaman berjangka' : 'cicilan') + ' ' + formatRupiah(amt) + ' atas nama ' + name + '? Saldo hutang akan dihitung ulang.')) return;
@@ -166,14 +175,16 @@ export default function KasbonView({ currentUser, activeOutlet }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  Kasbon & Cicilan Kru
+                  {isOwner ? 'Kasbon & Cicilan Kru' : `Kasbon Pribadi — ${currentUserName}`}
                 </h2>
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: '#EEF2FF', color: '#4338CA', border: '1px solid #C7D2FE' }}>
-                  Kedai & Gerobak
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: isOwner ? '#EEF2FF' : '#ECFDF5', color: isOwner ? '#4338CA' : '#059669', border: `1px solid ${isOwner ? '#C7D2FE' : '#A7F3D0'}` }}>
+                  {isOwner ? 'Kedai & Gerobak' : 'Data Pribadi Terproteksi'}
                 </span>
               </div>
               <p style={{ margin: '3px 0 0 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
-                Pencatatan pinjaman darurat dan pelunasan cicilan operasional kru Bara Coffee
+                {isOwner 
+                  ? 'Pencatatan pinjaman darurat dan pelunasan cicilan operasional seluruh kru Bara Coffee' 
+                  : `Riwayat pencatatan kasbon, tenor pinjaman, dan cicilan aktif untuk ${currentUserName}.`}
               </p>
             </div>
           </div>
@@ -186,11 +197,19 @@ export default function KasbonView({ currentUser, activeOutlet }) {
           </button>
 
           <button type='button' className='btn btn-primary' onClick={() => {
-            setForm({ staff_name: '', outlet: activeOutlet || 'kedai', type: 'kasbon', amount: '', notes: '', entry_date: new Date().toISOString().split('T')[0] });
+            setForm({ 
+              staff_name: isOwner ? '' : currentUserName, 
+              outlet: activeOutlet || 'kedai', 
+              type: 'kasbon', 
+              tenor_months: '12',
+              amount: '', 
+              notes: '', 
+              entry_date: new Date().toISOString().split('T')[0] 
+            });
             setShowModal(true);
           }} style={{ height: '40px', padding: '0 16px' }}>
             <Plus size={16} />
-            <span>Catat Kasbon / Cicilan</span>
+            <span>{isOwner ? 'Catat Kasbon / Cicilan' : 'Ajukan Kasbon / Cicilan'}</span>
           </button>
         </div>
       </div>
@@ -208,22 +227,26 @@ export default function KasbonView({ currentUser, activeOutlet }) {
       {/* KPI Stats Bar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px', marginBottom: '20px' }}>
         <div className='glass-card' style={{ padding: '16px 20px', borderLeft: '4px solid #ef4444' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Sisa Kasbon Aktif</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            {isOwner ? 'Total Sisa Kasbon Aktif' : 'Sisa Hutang Kasbon Saya'}
+          </span>
           <h3 style={{ margin: '6px 0 0 0', fontSize: '1.5rem', fontWeight: 800, color: '#DC2626' }}>
             {formatRupiah(stats.totalOutstanding)}
           </h3>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-            Dari {stats.totalKruBerhutang} kru yang masih memiliki sisa hutang
+            {isOwner ? `Dari ${stats.totalKruBerhutang} kru yang masih memiliki sisa hutang` : 'Nominal yang perlu dilunasi/dipotong gaji'}
           </span>
         </div>
 
         <div className='glass-card' style={{ padding: '16px 20px', borderLeft: '4px solid #4F46E5' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Akumulasi Pinjaman</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            {isOwner ? 'Akumulasi Pinjaman' : 'Total Pinjaman Diajukan'}
+          </span>
           <h3 style={{ margin: '6px 0 0 0', fontSize: '1.5rem', fontWeight: 800, color: '#1E293B' }}>
             {formatRupiah(stats.totalPinjamanAll)}
           </h3>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-            Total seluruh kasbon yang pernah dikeluarkan
+            {isOwner ? 'Total seluruh kasbon yang pernah dikeluarkan' : 'Akumulasi kasbon & pinjaman berjangka'}
           </span>
         </div>
 
@@ -233,17 +256,23 @@ export default function KasbonView({ currentUser, activeOutlet }) {
             {formatRupiah(stats.totalCicilanAll)}
           </h3>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-            Total dana kasbon yang sudah dikembalikan
+            {isOwner ? 'Total dana kasbon yang sudah dikembalikan' : 'Total cicilan yang telah terbayar'}
           </span>
         </div>
 
         <div className='glass-card' style={{ padding: '16px 20px', borderLeft: '4px solid #6366F1' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Kru Berkasbon</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            {isOwner ? 'Kru Berkasbon' : 'Status Pelunasan'}
+          </span>
           <h3 style={{ margin: '6px 0 0 0', fontSize: '1.5rem', fontWeight: 800, color: '#4338CA' }}>
-            {stats.totalKruBerhutang} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span>
+            {isOwner ? (
+              <>{stats.totalKruBerhutang} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Orang</span></>
+            ) : (
+              stats.totalOutstanding <= 0 ? '✓ Lunas' : 'Belum Lunas'
+            )}
           </h3>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-            Dari total {summaries.length} kru terdaftar
+            {isOwner ? `Dari total ${summaries.length} kru terdaftar` : (stats.totalOutstanding <= 0 ? 'Tidak ada tanggungan kasbon' : 'Akan dipotong saat penerbitan payroll')}
           </span>
         </div>
       </div>
@@ -416,9 +445,13 @@ export default function KasbonView({ currentUser, activeOutlet }) {
                       <td style={{ padding: '12px 14px', color: 'var(--text-secondary)' }}>{r.notes || '-'}</td>
                       <td style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: '0.82rem' }}>{r.approved_by || 'Owner'}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                        <button type='button' onClick={() => handleDelete(r.id, r.staff_name, r.amount, r.type)} className='btn btn-ghost' style={{ padding: '4px 8px', color: '#94A3B8' }} title='Hapus baris transaksi' onMouseOver={e => e.currentTarget.style.color = '#ef4444'} onMouseOut={e => e.currentTarget.style.color = '#94A3B8'}>
-                          <Trash2 size={15} />
-                        </button>
+                        {isOwner ? (
+                          <button type='button' onClick={() => handleDelete(r.id, r.staff_name, r.amount, r.type)} className='btn btn-ghost' style={{ padding: '4px 8px', color: '#94A3B8' }} title='Hapus baris transaksi' onMouseOver={e => e.currentTarget.style.color = '#ef4444'} onMouseOut={e => e.currentTarget.style.color = '#94A3B8'}>
+                            <Trash2 size={15} />
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>-</span>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -490,15 +523,25 @@ export default function KasbonView({ currentUser, activeOutlet }) {
 
               <div className='form-group' style={{ margin: 0 }}>
                 <label className='form-label'>Nama Kru</label>
-                {staffList.length > 0 ? (
-                  <select className='form-input' required value={form.staff_name} onChange={e => setForm({ ...form, staff_name: e.target.value })}>
-                    <option value=''>-- Pilih Kru Bara Coffee --</option>
-                    {staffList.map((s, idx) => (
-                      <option key={idx} value={s.name}>{s.name} ({s.position || 'Kru'})</option>
-                    ))}
-                  </select>
+                {isOwner ? (
+                  staffList.length > 0 ? (
+                    <select className='form-input' required value={form.staff_name} onChange={e => setForm({ ...form, staff_name: e.target.value })}>
+                      <option value=''>-- Pilih Kru Bara Coffee --</option>
+                      {staffList.map((s, idx) => (
+                        <option key={idx} value={s.name}>{s.name} ({s.position || 'Kru'})</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type='text' required className='form-input' placeholder='Ketik nama kru...' value={form.staff_name} onChange={e => setForm({ ...form, staff_name: e.target.value })} />
+                  )
                 ) : (
-                  <input type='text' required className='form-input' placeholder='Ketik nama kru...' value={form.staff_name} onChange={e => setForm({ ...form, staff_name: e.target.value })} />
+                  <input 
+                    type='text' 
+                    readOnly 
+                    className='form-input' 
+                    style={{ background: 'var(--bg-input)', cursor: 'not-allowed', fontWeight: 700, color: 'var(--text-primary)' }} 
+                    value={currentUserName} 
+                  />
                 )}
               </div>
 
