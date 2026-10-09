@@ -115,11 +115,10 @@ export async function saveDailySalesRecord(recordData) {
         // Simpan rincian kas keluar
         if (petty_cash_items && petty_cash_items.length > 0) {
           const itemsToInsert = petty_cash_items.map(item => ({
-            daily_sales_id: savedId,
+            sales_id: savedId,
             outlet: mainRecord.outlet || 'kedai',
-            expense_date: mainRecord.entry_date,
-            description: item.description,
-            amount: item.amount,
+            item_name: item.item_name || item.name || item.description || 'Pengeluaran Kasir',
+            amount: Number(item.amount) || 0,
             category: item.category || 'Operasional'
           }));
 
@@ -153,6 +152,26 @@ export async function saveDailySalesRecord(recordData) {
   try {
     const sheetsResult = await syncToGoogleSheets(finalRecord);
     sheetsStatus = sheetsResult;
+
+    // Sinkronisasi item pengeluaran ke buku kas jika ada rincian
+    if (petty_cash_items && petty_cash_items.length > 0) {
+      for (const item of petty_cash_items) {
+        try {
+          await syncExpenseToGoogleSheets({
+            sales_id: savedId,
+            entry_date: finalRecord.entry_date,
+            shift: finalRecord.shift,
+            cashier_name: finalRecord.cashier_name,
+            item_name: item.item_name || item.name || item.description || 'Pengeluaran Kasir',
+            category: item.category || 'Operasional',
+            amount: Number(item.amount) || 0,
+            notes: finalRecord.notes || ''
+          });
+        } catch (itemSyncErr) {
+          console.warn('Gagal sync item kas kecil ke Google Sheets:', itemSyncErr);
+        }
+      }
+    }
   } catch (err) {
     console.warn('Gagal sinkronisasi Google Sheets:', err.message);
     sheetsStatus = { synced: false, message: err.message };
@@ -173,7 +192,7 @@ export async function deleteDailySalesRecord(recordId) {
       const { error: itemsErr } = await supabase
         .from('petty_cash_items')
         .delete()
-        .eq('daily_sales_id', recordId);
+        .eq('sales_id', recordId);
 
       const { error } = await supabase
         .from('daily_sales')

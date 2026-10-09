@@ -311,8 +311,8 @@ export default function SalesDetailModal({ record, onClose, onDelete }) {
                   {items.map((it, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: idx < items.length - 1 ? '1px solid var(--border-subtle)' : 'none', fontSize: '0.84rem' }}>
                       <div>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.item_name}</span>
-                        <span style={{ marginLeft: '8px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>({it.category})</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{it.item_name || it.name || it.description || 'Pengeluaran Kasir'}</span>
+                        <span style={{ marginLeft: '8px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>({it.category || 'Operasional'})</span>
                       </div>
                       <strong style={{ color: 'var(--danger)', fontFamily: 'var(--font-mono)' }}>-{formatIDR(it.amount)}</strong>
                     </div>
@@ -470,7 +470,7 @@ export default function SalesDetailModal({ record, onClose, onDelete }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.8rem' }}>
                   {items.map((it, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dotted #eee', paddingBottom: '2px' }}>
-                      <span>{idx + 1}. {it.item_name} <span style={{ color: '#666', fontSize: '0.72rem' }}>({it.category})</span></span>
+                      <span>{idx + 1}. {it.item_name || it.name || it.description || 'Pengeluaran Kasir'} <span style={{ color: '#666', fontSize: '0.72rem' }}>({it.category || 'Operasional'})</span></span>
                       <strong style={{ fontFamily: 'var(--font-mono)', color: '#c53030' }}>-{formatIDR(it.amount)}</strong>
                     </div>
                   ))}

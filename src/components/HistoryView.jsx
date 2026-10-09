@@ -187,7 +187,8 @@ export default function HistoryView({
       if (items && Array.isArray(items) && items.length > 0) {
         items.forEach((item, idx) => {
           const amt = Number(item.amount) || 0;
-          if (amt > 0 || item.item_name) {
+          const itemName = item.item_name || item.description || item.name || 'Pengeluaran Kasir';
+          if (amt > 0 || itemName) {
             list.push({
               id: item.id || `${record.id}-item-${idx}`,
               sales_id: record.id,
@@ -195,7 +196,7 @@ export default function HistoryView({
               shift: record.shift,
               shiftBadge,
               cashier_name: record.cashier_name,
-              item_name: item.item_name || 'Pengeluaran Kasir',
+              item_name: itemName,
               category: item.category || 'Lain-lain',
               amount: amt,
               shiftNotes: record.notes,
