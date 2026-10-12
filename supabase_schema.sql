@@ -80,7 +80,8 @@ CREATE TABLE IF NOT EXISTS attendance (
     overtime_hours NUMERIC(4, 2) DEFAULT 0,      -- Jam lembur
     handover_notes TEXT,                         -- Catatan serah terima shift & closing bar
     notes TEXT,                                  -- Catatan absensi / alasan izin / sakit
-    photo_url TEXT,                              -- Foto selfie presensi (anti-cheat)
+    photo_url TEXT,                              -- Foto selfie presensi masuk (anti-cheat)
+    photo_out_url TEXT,                          -- Foto selfie presensi pulang / closing (anti-cheat)
     is_demo BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -100,6 +101,7 @@ ALTER TABLE attendance ADD COLUMN IF NOT EXISTS schedule_in VARCHAR(10);
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS schedule_out VARCHAR(10);
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS is_demo BOOLEAN DEFAULT false;
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS photo_out_url TEXT;
 
 -- 5. Tabel Penggajian Staf (Payroll & Payslip)
 CREATE TABLE IF NOT EXISTS payroll_records (

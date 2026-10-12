@@ -411,8 +411,11 @@ const handleClockInSubmit = async (e) => {
       return;
     }
 
+    // Cocokkan user_id staf dari master staffList jika ada
+    const matchedStaff = staffList.find(s => s.name === inStaffName);
     const newRecord = {
       entry_date: todayStr,
+      user_id: matchedStaff?.id || (inStaffName === currentUser?.name ? currentUser?.id : null),
       staff_name: inStaffName,
       position: inPosition,
       shift: selectedShiftObj.label,
@@ -433,7 +436,7 @@ const handleClockInSubmit = async (e) => {
     };
 
     const res = await saveClockInRecord(newRecord, selectedShiftObj);
-    const finalSaved = res.data || saved;
+    const finalSaved = res.data || newRecord;
 
     const updated = [finalSaved, ...records.filter(r => r.id !== finalSaved.id)];
     setRecords(updated);
@@ -470,7 +473,8 @@ const handleClockInSubmit = async (e) => {
       clock_out: finalOut,
       work_duration: duration,
       overtime_hours: Number(outOvertime) || 0,
-      handover_notes: outHandover.trim() || 'Shift selesai & closing area aman.'
+      handover_notes: outHandover.trim() || 'Shift selesai & closing area aman.',
+      photo_out_url: outSelfie || null
     };
 
     const res = await updateClockOutRecord(targetRecord, updates);

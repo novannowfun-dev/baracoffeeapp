@@ -237,20 +237,36 @@ export async function updateClockOutRecord(targetRecord, updates) {
         clock_out: updates.clock_out,
         work_duration: updates.work_duration || '-',
         overtime_hours: Number(updates.overtime_hours) || 0,
-        handover_notes: updates.handover_notes || '',
-        photo_out_url: updates.photo_out_url || null
+        handover_notes: updates.handover_notes || ''
       };
 
-      const { data, error } = await supabase
+      if (updates.photo_out_url) {
+        cleanUpdates.photo_out_url = updates.photo_out_url;
+      }
+
+      let { data, error } = await supabase
         .from('attendance')
         .update(cleanUpdates)
         .eq('id', targetRecord.id)
         .select()
         .single();
 
+      // Jika error karena kolom photo_out_url belum ada di Supabase
+      if (error && (error.message?.includes('photo_out_url') || error.code === 'PGRST204')) {
+        delete cleanUpdates.photo_out_url;
+        const retryRes = await supabase
+          .from('attendance')
+          .update(cleanUpdates)
+          .eq('id', targetRecord.id)
+          .select()
+          .single();
+        data = retryRes.data;
+        error = retryRes.error;
+      }
+
       if (!error && data) {
-        updatedRecord = data;
-        result = { success: true, source: 'supabase', data };
+        updatedRecord = { ...data, photo_out_url: updates.photo_out_url || data.photo_out_url };
+        result = { success: true, source: 'supabase', data: updatedRecord };
       } else if (error) {
         console.warn('Supabase update clock-out error:', error.message);
         result = { success: false, source: 'local', data: updatedRecord, error: error.message };
